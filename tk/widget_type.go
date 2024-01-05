@@ -3,6 +3,7 @@
 package tk
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -70,6 +71,7 @@ func (typ WidgetType) ThemeConfigure() string {
 	_, meta, _ := typ.MetaClass(true)
 	for _, attr := range attrs {
 		if !meta.HasAttribute(attr.Key) {
+			dumpError(errors.New("no such attribute: " + attr.Key))
 			continue
 		}
 		list = append(list, fmt.Sprintf("-%v %q", attr.Key, attr.Value))
@@ -95,6 +97,7 @@ func buildWidgetAttributeScript(meta *MetaClass, ttk bool, attributes []*WidgetA
 			continue
 		}
 		if !meta.HasAttribute(attr.Key) {
+			dumpError(errors.New("no such attribute: " + attr.Key))
 			continue
 		}
 		if strs, ok := attr.Value.([]string); ok {

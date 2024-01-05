@@ -3,6 +3,7 @@
 package tk
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -73,12 +74,21 @@ func (w *BaseWidget) DestroyChildren() error {
 
 func (w *BaseWidget) NativeAttribute(key string) string {
 	if !IsValidWidget(w) {
+		if fnErrorHandle != nil {
+			dumpError(fmt.Errorf("invalid widget: %s", w))
+		}
 		return ""
 	}
 	if !w.info.MetaClass.HasAttribute(key) {
+		if fnErrorHandle != nil {
+			dumpError(errors.New("no such attribute: " + key))
+		}
 		return ""
 	}
-	r, _ := evalAsString(fmt.Sprintf("%v cget -%v", w.id, key))
+	r, err := evalAsString(fmt.Sprintf("%v cget -%v", w.id, key))
+	if err != nil {
+		dumpError(err)
+	}
 	return r
 }
 
@@ -88,13 +98,19 @@ func (w *BaseWidget) NativeAttributes(keys ...string) (attributes []NativeAttr) 
 	}
 	if keys == nil {
 		for _, key := range w.info.MetaClass.Attributes {
-			r, _ := evalAsString(fmt.Sprintf("%v cget -%v", w.id, key))
+			r, err := evalAsString(fmt.Sprintf("%v cget -%v", w.id, key))
+			if err != nil {
+				dumpError(err)
+			}
 			attributes = append(attributes, NativeAttr{key, r})
 		}
 	} else {
 		for _, key := range keys {
 			if w.info.MetaClass.HasAttribute(key) {
-				r, _ := evalAsString(fmt.Sprintf("%v cget -%v", w.id, key))
+				r, err := evalAsString(fmt.Sprintf("%v cget -%v", w.id, key))
+				if err != nil {
+					dumpError(err)
+				}
 				attributes = append(attributes, NativeAttr{key, r})
 			}
 		}
