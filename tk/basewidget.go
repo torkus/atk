@@ -74,15 +74,11 @@ func (w *BaseWidget) DestroyChildren() error {
 
 func (w *BaseWidget) NativeAttribute(key string) string {
 	if !IsValidWidget(w) {
-		if fnErrorHandle != nil {
-			dumpError(fmt.Errorf("invalid widget: %s", w))
-		}
+		dumpError(fmt.Errorf("invalid widget: %s", w))
 		return ""
 	}
 	if !w.info.MetaClass.HasAttribute(key) {
-		if fnErrorHandle != nil {
-			dumpError(errors.New("no such attribute: " + key))
-		}
+		dumpError(errors.New("no such attribute: " + key))
 		return ""
 	}
 	r, err := evalAsString(fmt.Sprintf("%v cget -%v", w.id, key))
