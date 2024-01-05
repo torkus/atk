@@ -252,7 +252,7 @@ func evalAsIntListEx(script string, dump bool) ([]int, error) {
 }
 
 func dumpError(err error) {
-	if fnErrorHandle != nil {
+	if fnErrorHandle != nil && err != nil {
 		fnErrorHandle(fmt.Errorf("%v", err))
 	}
 }

@@ -81,10 +81,7 @@ func (w *BaseWidget) NativeAttribute(key string) string {
 		dumpError(errors.New("no such attribute: " + key))
 		return ""
 	}
-	r, err := evalAsString(fmt.Sprintf("%v cget -%v", w.id, key))
-	if err != nil {
-		dumpError(err)
-	}
+	r, _ := evalAsString(fmt.Sprintf("%v cget -%v", w.id, key))
 	return r
 }
 
@@ -94,19 +91,13 @@ func (w *BaseWidget) NativeAttributes(keys ...string) (attributes []NativeAttr) 
 	}
 	if keys == nil {
 		for _, key := range w.info.MetaClass.Attributes {
-			r, err := evalAsString(fmt.Sprintf("%v cget -%v", w.id, key))
-			if err != nil {
-				dumpError(err)
-			}
+			r, _ := evalAsString(fmt.Sprintf("%v cget -%v", w.id, key))
 			attributes = append(attributes, NativeAttr{key, r})
 		}
 	} else {
 		for _, key := range keys {
 			if w.info.MetaClass.HasAttribute(key) {
-				r, err := evalAsString(fmt.Sprintf("%v cget -%v", w.id, key))
-				if err != nil {
-					dumpError(err)
-				}
+				r, _ := evalAsString(fmt.Sprintf("%v cget -%v", w.id, key))
 				attributes = append(attributes, NativeAttr{key, r})
 			}
 		}
