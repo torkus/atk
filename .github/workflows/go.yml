@@ -12,7 +12,7 @@ jobs:
         runs-on: ubuntu-20.04
         steps:
             - run: sudo apt install tk8.6-dev xvfb -y --no-install-recommends
-            - run: locate libtcl.so; locate libtk.so
+            - run: ls -lahR /usr/include
             - uses: actions/checkout@v3
             - name: Set up Go
               uses: actions/setup-go@v4
