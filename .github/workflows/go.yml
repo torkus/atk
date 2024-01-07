@@ -8,19 +8,10 @@ on:
             - $default-branch
     workflow_dispatch: {}
 jobs:
-    update:
-        script:
-            - apt-get update
-    deps:
-        needs:
-            - update
-        script:
-            - apt install tk xvfb -y --no-install-recommends
     build:
-        needs:
-            - deps
         runs-on: ubuntu-20.04
         steps:
+            - run: apt install tk xvfb -y --no-install-recommends
             - uses: actions/checkout@v3
             - name: Set up Go
               uses: actions/setup-go@v4
