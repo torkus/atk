@@ -11,7 +11,7 @@ jobs:
     build:
         runs-on: ubuntu-20.04
         steps:
-            - run: sudo apt install tk xvfb -y --no-install-recommends
+            - run: sudo apt install tk8.6-dev xvfb -y --no-install-recommends
             - uses: actions/checkout@v3
             - name: Set up Go
               uses: actions/setup-go@v4
