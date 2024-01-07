@@ -1,46 +1,41 @@
-name: 'Go'
+name: Go
 
 on:
     push:
         branches:
-            - '$default-branch'
+            - $default-branch
     pull_request:
         branches:
-            - '$default-branch'
+            - $default-branch
     workflow_dispatch: {}
 
 jobs:
-    -
-        name: 'update'
-        description: 'Upgrade packages to ensure a successful installation of Tcl/Tk'
+    update:
         script:
-            - 'apt-get update'
+            - apt-get update
 
-    -
-        name: 'deps'
+    deps:
         needs:
-            - 'update'
-        description: 'Install Tcl/Tk for Ubuntu'
+            - update
         script:
-            - 'apt install tk xvfb -y --no-install-recommends'
+            - apt install tk xvfb -y --no-install-recommends
 
-    -
-        build:
-            needs:
-                - 'deps'
-        runs-on: 'ubuntu-20.04'
+    build:
+        needs:
+            - deps
+        runs-on: ubuntu-20.04
         steps:
             -
-                uses: 'actions/checkout@v3'
+                uses: actions/checkout@v3
             -
-                name: 'Set up Go'
-                uses: 'actions/setup-go@v4'
+                name: Set up Go
+                uses: actions/setup-go@v4
                 with:
                     go-version: '1.21'
             -
-                name: 'Build'
-                run: 'go build -v ./...'
+                name: Build
+                run: go build -v ./...
             -
-                name: 'Test'
-                run: 'go test -v ./...'
+                name: Test
+                run: xvfb-run go test -v ./...
 
