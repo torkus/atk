@@ -1,29 +1,46 @@
-# This workflow will build a golang project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
-
-name: Go
+name: 'Go'
 
 on:
-  push:
-    branches: [ $default-branch ]
-  pull_request:
-    branches: [ $default-branch ]
-  workflow_dispatch: {}
+    push:
+        branches:
+            - '$default-branch'
+    pull_request:
+        branches:
+            - '$default-branch'
+    workflow_dispatch: {}
 
 jobs:
+    -
+        name: 'update'
+        description: 'Upgrade packages to ensure a successful installation of Tcl/Tk'
+        script:
+            - 'apt-get update'
 
-  build:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
+    -
+        name: 'deps'
+        needs:
+            - 'update'
+        description: 'Install Tcl/Tk for Ubuntu'
+        script:
+            - 'apt install tk xvfb -y --no-install-recommends'
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.21'
+    -
+        build:
+            needs:
+                - 'deps'
+        runs-on: 'ubuntu-20.04'
+        steps:
+            -
+                uses: 'actions/checkout@v3'
+            -
+                name: 'Set up Go'
+                uses: 'actions/setup-go@v4'
+                with:
+                    go-version: '1.21'
+            -
+                name: 'Build'
+                run: 'go build -v ./...'
+            -
+                name: 'Test'
+                run: 'go test -v ./...'
 
-    - name: Build
-      run: go build -v ./... 
-
-    - name: Test
-      run: go test -v ./...
