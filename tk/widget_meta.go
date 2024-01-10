@@ -924,4 +924,23 @@ func init() {
 					"style",
 					"class"}},
 		}
+	typeMetaMap[WidgetTypeTablelist] =
+		&MetaType{
+			Type: "Tablelist",
+			Tk:   nil,
+			Ttk: &MetaClass{"tablelist::tablelist", "Tablelist",
+				[]string{"columns",
+					"displaycolumns",
+					"show",
+					"selectmode",
+					"height",
+					"padding",
+					"xscrollcommand",
+					"yscrollcommand",
+					"takefocus",
+					"cursor",
+					"style",
+					"class"}},
+		}
+
 }

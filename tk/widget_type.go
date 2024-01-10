@@ -39,6 +39,7 @@ const (
 	WidgetTypeText
 	WidgetTypeWindow
 	WidgetTypeTreeView
+	WidgetTypeTablelist
 	WidgetTypeLayoutFrame
 	WidgetTypeLayoutSpacer
 	WidgetTypeLast

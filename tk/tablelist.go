@@ -1,0 +1,669 @@
+package tk
+
+import (
+	"errors"
+	"fmt"
+	"strings"
+)
+
+type TablelistColumn struct {
+	Width int
+	Title string
+	Align string
+}
+
+func (tlc TablelistColumn) String() string {
+	return fmt.Sprintf(`%d "%s" %s`, tlc.Width, tlc.Title, tlc.Align)
+}
+
+type TablelistSelectMode string
+
+const (
+	TablelistSelectSingle   TablelistSelectMode = "single"
+	TablelistSelectBrowse                       = "browse"
+	TablelistSelectMultiple                     = "multiple"
+	TablelistSelectExtended                     = "extended"
+)
+
+type Tablelist struct {
+	BaseWidget
+	xscrollcommand *CommandEx
+	yscrollcommand *CommandEx
+}
+
+func NewTablelist(parent Widget, attributes ...*WidgetAttr) *Tablelist {
+	theme := checkInitUseTheme(attributes)
+	iid := makeNamedWidgetId(parent, "atk_tablelist")
+	info := CreateWidgetInfo(iid, WidgetTypeTablelist, theme, attributes)
+	if info == nil {
+		return nil
+	}
+	w := &Tablelist{}
+	w.id = iid
+	w.info = info
+	RegisterWidget(w)
+	return w
+}
+
+// "Specifies a Tcl command to be invoked when mouse button 1 is pressed over one of the header labels and later released over the same label."
+func (w *Tablelist) SetLabelCommand(cmd string) {
+	eval(fmt.Sprintf("%v configure -labelcommand %s", w.id, cmd))
+}
+
+// "this command sorts the items based on the column whose index was passed to it as second argument."
+func (w *Tablelist) SetLabelCommandSortByColumn() {
+	w.SetLabelCommand("tablelist::sortByColumn")
+}
+
+// "Specifies a Tcl command to be invoked when mouse button 1 is pressed together with the Shift key over one of the header labels and later released over the same label."
+func (w *Tablelist) SetLabelCommand2(cmd string) {
+	eval(fmt.Sprintf("%v configure -labelcommand2 %s", w.id, cmd))
+}
+
+// "this command adds the column index passed to it as second argument to the list of sort columns and sorts the items based on the columns indicated by the modified list"
+func (w *Tablelist) SetLabelCommand2AddToSortColumns() {
+	w.SetLabelCommand2("tablelist::addToSortColumns")
+}
+
+func (w *Tablelist) Attach(id string) error {
+	info, err := CheckWidgetInfo(id, WidgetTypeTablelist)
+	if err != nil {
+		return err
+	}
+	w.id = id
+	w.info = info
+	RegisterWidget(w)
+	return nil
+}
+
+func (w *Tablelist) SetTakeFocus(takefocus bool) error {
+	return eval(fmt.Sprintf("%v configure -takefocus {%v}", w.id, boolToInt(takefocus)))
+}
+
+func (w *Tablelist) IsTakeFocus() bool {
+	r, _ := evalAsBool(fmt.Sprintf("%v cget -takefocus", w.id))
+	return r
+}
+
+func (w *Tablelist) SetHeight(row int) error {
+	return eval(fmt.Sprintf("%v configure -height {%v}", w.id, row))
+}
+
+func (w *Tablelist) Height() int {
+	r, _ := evalAsInt(fmt.Sprintf("%v cget -height", w.id))
+	return r
+}
+
+/*
+
+func (w *Tablelist) SetPaddingN(padx int, pady int) error {
+	if w.info.IsTtk {
+		return eval(fmt.Sprintf("%v configure -padding {%v %v}", w.id, padx, pady))
+	}
+	return eval(fmt.Sprintf("%v configure -padx {%v} -pady {%v}", w.id, padx, pady))
+}
+
+
+	func (w *Tablelist) PaddingN() (int, int) {
+		var r string
+		var err error
+		if w.info.IsTtk {
+			r, err = evalAsString(fmt.Sprintf("%v cget -padding", w.id))
+		} else {
+			r1, _ := evalAsString(fmt.Sprintf("%v cget -padx", w.id))
+			r2, _ := evalAsString(fmt.Sprintf("%v cget -pady", w.id))
+			r = r1 + " " + r2
+		}
+		return parserPaddingResult(r, err)
+	}
+
+	func (w *Tablelist) SetPadding(pad Pad) error {
+		return w.SetPaddingN(pad.X, pad.Y)
+	}
+
+	func (w *Tablelist) Padding() Pad {
+		x, y := w.PaddingN()
+		return Pad{x, y}
+	}
+*/
+
+func (w *Tablelist) SetSelectMode(mode TablelistSelectMode) error {
+	return eval(fmt.Sprintf("%v configure -selectmode {%v}", w.id, mode))
+}
+
+func (w *Tablelist) SelectMode() string { //TablelistSelectMode { // todo
+	r, _ := evalAsString(fmt.Sprintf("%v cget -selectmode", w.id))
+	//return parserTreeSebectModeResult(r, err)
+	return r
+}
+
+/*
+untested
+
+	func (w *Tablelist) SetHeaderHidden(hide bool) error {
+		var value string
+		if hide {
+			value = "tree"
+		} else {
+			value = "tree headings"
+		}
+		return eval(fmt.Sprintf("%v configure -show {%v}", w.id, value))
+	}
+
+	func (w *Tablelist) IsHeaderHidden() bool {
+		r, _ := evalAsString(fmt.Sprintf("%v cget -show", w.id))
+		return r == "tree"
+	}
+*/
+func (w *Tablelist) SetColumnCount(columns int) error {
+	if columns < 1 {
+		return ErrInvalid
+	}
+	var ids []string
+	for i := 0; i < columns; i++ {
+		ids = append(ids, TablelistColumn{}.String())
+	}
+	//fmt.Println(evalAsString(fmt.Sprintf("%v configure -columns", w.id)))
+	return eval(fmt.Sprintf("%v configure -columns {%v}", w.id, strings.Join(ids, " ")))
+}
+
+func (w *Tablelist) SetColumns(columns []TablelistColumn) error {
+	if len(columns) == 0 {
+		return nil
+	}
+	var tlc_strings []string
+	for _, tlc := range columns {
+		tlc_strings = append(tlc_strings, tlc.String())
+	}
+	return eval(fmt.Sprintf("%v configure -columns {%v}", w.id, strings.Join(tlc_strings, " ")))
+}
+
+// "Inserts the columns specified by the list columnList just before the column given by columnIndex"
+
+func (w *Tablelist) SetColumnsAt(index int, columns []TablelistColumn) error {
+	if len(columns) == 0 {
+		return nil
+	}
+	var tlc_strings []string
+	for _, tlc := range columns {
+		tlc_strings = append(tlc_strings, tlc.String())
+	}
+	return eval(fmt.Sprintf("%v insertcolumnlist %d {%v}", w.id, index, strings.Join(tlc_strings, " ")))
+}
+
+func (w *Tablelist) ColumnCount() int {
+	num, _ := evalAsInt(fmt.Sprintf("%v columncount", w.id))
+	return num
+
+}
+
+/*
+	func (w *Tablelist) SetHeaderLabels(labels []string) error {
+		for n, label := range labels {
+			setObjText("atk_heading_label", label)
+			err := eval(fmt.Sprintf("%v heading #%v -text $atk_heading_label", w.id, n))
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	func (w *Tablelist) SetHeaderLabel(column int, label string) error {
+		setObjText("atk_heading_label", label)
+		return eval(fmt.Sprintf("%v heading #%v -text $atk_heading_label", w.id, column))
+	}
+
+	func (w *Tablelist) HeaderLabel(column int) string {
+		r, _ := evalAsString(fmt.Sprintf("%v heading #%v -text", w.id, column))
+		return r
+	}
+
+	func (w *Tablelist) SetHeaderImage(column int, img *Image) error {
+		var iid string
+		if img != nil {
+			iid = img.Id()
+		}
+		return eval(fmt.Sprintf("%v heading #%v -image {%v}", w.id, column, iid))
+	}
+
+	func (w *Tablelist) HeaderImage(column int) *Image {
+		r, err := evalAsString(fmt.Sprintf("%v heading #%v -image", w.id, column))
+		return parserImageResult(r, err)
+	}
+
+	func (w *Tablelist) SetHeaderAnchor(column int, anchor Anchor) error {
+		return eval(fmt.Sprintf("%v heading #%v -anchor %v", w.id, column, anchor))
+	}
+
+	func (w *Tablelist) HeaderAnchor(column int) Anchor {
+		r, err := evalAsString(fmt.Sprintf("%v heading #%v -anchor", w.id, column))
+		return parserAnchorResult(r, err)
+	}
+*/
+
+/*
+	func (w *Tablelist) SetColumnWidth(column int, width int) error {
+		return eval(fmt.Sprintf("%v column #%v -width %v", w.id, column, width))
+	}
+
+	func (w *Tablelist) ColumnWidth(column int) int {
+		r, _ := evalAsInt(fmt.Sprintf("%v column #%v -width", w.id, column))
+		return r
+	}
+
+	func (w *Tablelist) SetColumnMinimumWidth(column int, width int) error {
+		return eval(fmt.Sprintf("%v column #%v -minwidth %v", w.id, column, width))
+	}
+
+	func (w *Tablelist) ColumnMinimumWidth(column int) int {
+		r, _ := evalAsInt(fmt.Sprintf("%v column #%v -minwidth", w.id, column))
+		return r
+	}
+
+	func (w *Tablelist) SetColumnAnchor(column int, anchor Anchor) error {
+		return eval(fmt.Sprintf("%v column #%v -anchor %v", w.id, column, anchor))
+	}
+
+	func (w *Tablelist) ColumnAnchor(column int) Anchor {
+		r, err := evalAsString(fmt.Sprintf("%v column #%v -anchor", w.id, column))
+		return parserAnchorResult(r, err)
+	}
+
+// default all column stretch 1
+
+	func (w *Tablelist) SetColumnStretch(column int, stretch bool) error {
+		return eval(fmt.Sprintf("%v column #%v -stretch %v", w.id, column, stretch))
+	}
+
+// default all column stretch 1
+
+	func (w *Tablelist) ColumnStretch(column int) bool {
+		r, _ := evalAsBool(fmt.Sprintf("%v column #%v -stretch", w.id, column))
+		return r
+	}
+*/
+
+func (w *Tablelist) IsValidItem(item *TablelistItem) bool {
+	return item != nil && item.tablelist != nil && item.tablelist.id == w.id
+}
+
+func (w *Tablelist) RootItem() *TablelistItem {
+	return &TablelistItem{w, ""}
+}
+
+func (w *Tablelist) ToplevelItems() []*TablelistItem {
+	return w.RootItem().Children()
+}
+
+// "Inserts zero or more new items in the widget's internal list just before the item given by index"
+func (tl *Tablelist) Insert(index int, item_list [][]string) []*TablelistItem {
+	item_strings := []string{}
+	for _, val_list := range item_list {
+		item_strings = append(item_strings, fmt.Sprintf("{%v}", strings.Join(val_list, " ")))
+	}
+	id_list, err := evalAsStringList(fmt.Sprintf("%v insert 0 %v", tl.id, strings.Join(item_strings, " ")))
+	if err != nil {
+		return nil
+	}
+
+	// todo: could this ever happen?
+	if len(id_list) != len(item_list) {
+		dumpError(errors.New("number of ids returned does not match the number of rows given"))
+	}
+
+	result := []*TablelistItem{}
+	for _, id := range id_list {
+		result = append(result, &TablelistItem{tl, id})
+	}
+
+	return result
+}
+
+/*
+	func (w *Tablelist) InsertChildList(parent *TablelistItem, index int, text string, values []string) *TablelistItem {
+		var pid string
+		if parent != nil {
+			if !w.IsValidItem(parent) {
+				return nil
+			}
+			pid = parent.id
+		}
+		//setObjText("atk_tablelist_item", text)
+		//setObjTextList("atk_tablelist_values", values)
+		cid := makeTablelistItemId(w.id, pid)
+
+		err := eval(fmt.Sprintf("%v insert 0 {%v} ", w.id, strings.Join(values, " ")))
+		if err != nil {
+			return nil
+		}
+		return &TablelistItem{w, cid}
+	}
+*/
+func (w *Tablelist) DeleteItem(item *TablelistItem) error {
+	if !w.IsValidItem(item) || item.IsRoot() {
+		return ErrInvalid
+	}
+	return eval(fmt.Sprintf("%v delete {%v}", w.id, item.id))
+}
+
+func (w *Tablelist) DeleteAllItems() error {
+	var ids []string
+	for _, item := range w.RootItem().Children() {
+		ids = append(ids, item.Id())
+	}
+	if len(ids) == 0 {
+		return ErrInvalid
+	}
+	setObjTextList("atk_tmp_items", ids)
+	return eval(fmt.Sprintf("%v delete $atk_tmp_items", w.id))
+}
+
+func (w *Tablelist) MoveItem(item *TablelistItem, parent *TablelistItem, index int) error {
+	if !w.IsValidItem(item) || item.IsRoot() {
+		return ErrInvalid
+	}
+	var pid string
+	if parent != nil {
+		if !w.IsValidItem(parent) {
+			return ErrInvalid
+		}
+		pid = parent.id
+	}
+	return eval(fmt.Sprintf("%v move {%v} {%v} %v", w.id, item.id, pid, index))
+}
+
+func (w *Tablelist) ScrollTo(item *TablelistItem) error {
+	if !w.IsValidItem(item) || item.IsRoot() {
+		return ErrInvalid
+	}
+	children := w.RootItem().Children()
+	if len(children) == 0 {
+		return ErrInvalid
+	}
+	//fix see bug: first scroll to root
+	eval(fmt.Sprintf("%v see %v", w.id, children[0].id))
+	return eval(fmt.Sprintf("%v see %v", w.id, item.id))
+}
+
+func (w *Tablelist) CurrentIndex() *TablelistItem {
+	lst := w.SelectionList()
+	if len(lst) == 0 {
+		return nil
+	}
+	return lst[0]
+}
+
+func (w *Tablelist) SetCurrentIndex(item *TablelistItem) error {
+	return w.SetSelections(item)
+}
+
+func (w *Tablelist) SelectionList() (lst []*TablelistItem) {
+	ids, err := evalAsStringList(fmt.Sprintf("%v selection", w.id))
+	if err != nil {
+		return
+	}
+	for _, id := range ids {
+		lst = append(lst, &TablelistItem{w, id})
+	}
+	return lst
+}
+
+func (w *Tablelist) SetSelections(items ...*TablelistItem) error {
+	return w.SetSelectionList(items)
+}
+
+func (w *Tablelist) RemoveSelections(items ...*TablelistItem) error {
+	return w.RemoveSelectionList(items)
+}
+
+func (w *Tablelist) AddSelections(items ...*TablelistItem) error {
+	return w.AddSelectionList(items)
+}
+
+func (w *Tablelist) ToggleSelections(items ...*TablelistItem) error {
+	return w.ToggleSelectionList(items)
+}
+
+func (w *Tablelist) SetSelectionList(items []*TablelistItem) error {
+	var ids []string
+	for _, item := range items {
+		if w.IsValidItem(item) && !item.IsRoot() {
+			ids = append(ids, item.id)
+		}
+	}
+	if len(ids) == 0 {
+		return ErrInvalid
+	}
+	return eval(fmt.Sprintf("%v selection set {%v}", w.id, strings.Join(ids, " ")))
+}
+
+func (w *Tablelist) RemoveSelectionList(items []*TablelistItem) error {
+	var ids []string
+	for _, item := range items {
+		if w.IsValidItem(item) && !item.IsRoot() {
+			ids = append(ids, item.id)
+		}
+	}
+	if len(ids) == 0 {
+		return ErrInvalid
+	}
+	return eval(fmt.Sprintf("%v selection remove {%v}", w.id, strings.Join(ids, " ")))
+}
+
+func (w *Tablelist) AddSelectionList(items []*TablelistItem) error {
+	var ids []string
+	for _, item := range items {
+		if w.IsValidItem(item) && !item.IsRoot() {
+			ids = append(ids, item.id)
+		}
+	}
+	if len(ids) == 0 {
+		return ErrInvalid
+	}
+	return eval(fmt.Sprintf("%v selection add {%v}", w.id, strings.Join(ids, " ")))
+}
+
+func (w *Tablelist) ToggleSelectionList(items []*TablelistItem) error {
+	var ids []string
+	for _, item := range items {
+		if w.IsValidItem(item) && !item.IsRoot() {
+			ids = append(ids, item.id)
+		}
+	}
+	if len(ids) == 0 {
+		return ErrInvalid
+	}
+	return eval(fmt.Sprintf("%v selection toggle {%v}", w.id, strings.Join(ids, " ")))
+}
+
+func (w *Tablelist) ExpandAll() error {
+	return w.RootItem().ExpandAll()
+}
+
+func (w *Tablelist) CollepseAll() error {
+	return w.RootItem().CollapseAll()
+}
+
+func (w *Tablelist) Expand(item *TablelistItem) error {
+	return w.SetExpanded(item, true)
+}
+
+func (w *Tablelist) Collapse(item *TablelistItem) error {
+	return w.SetExpanded(item, false)
+}
+
+func (w *Tablelist) SetExpanded(item *TablelistItem, expand bool) error {
+	if !w.IsValidItem(item) || item.IsRoot() {
+		return ErrInvalid
+	}
+	return item.SetExpanded(expand)
+}
+
+func (w *Tablelist) IsExpanded(item *TablelistItem) bool {
+	if !w.IsValidItem(item) || item.IsRoot() {
+		return false
+	}
+	return item.IsExpanded()
+}
+
+func (w *Tablelist) FocusItem() *TablelistItem {
+	r, _ := evalAsString(fmt.Sprintf("%v focus", w.id))
+	if r == "" {
+		return nil
+	}
+	return &TablelistItem{w, r}
+}
+
+func (w *Tablelist) SetFocusItem(item *TablelistItem) error {
+	if !w.IsValidItem(item) || item.IsRoot() {
+		return ErrInvalid
+	}
+	return eval(fmt.Sprintf("%v focus %v", w.id, item.id))
+}
+
+func (w *Tablelist) OnSelectionChanged(fn func()) error {
+	if fn == nil {
+		return ErrInvalid
+	}
+	return w.BindEvent("<<TablelistSelect>>", func(e *Event) {
+		fn()
+	})
+}
+
+/*
+func (w *Tablelist) OnItemExpanded(fn func()) error {
+	if fn == nil {
+		return ErrInvalid
+	}
+	return w.BindEvent("<<TreeviewOpen>>", func(e *Event) {
+		fn()
+	})
+}
+*/
+
+func (w *Tablelist) OnItemCollapsed(fn func()) error {
+	if fn == nil {
+		return ErrInvalid
+	}
+	return w.BindEvent("<<TreeviewSelect>>", func(e *Event) {
+		fn()
+	})
+}
+
+/*
+func (w *Tablelist) ItemAt(x int, y int) *TablelistItem {
+	id, err := evalAsString(fmt.Sprintf("%v identify item %v %v", w.id, x, y))
+	if err != nil {
+		return nil
+	}
+	if id == "" {
+		return nil
+	}
+	return &TablelistItem{w, id}
+}
+*/
+
+func (w *Tablelist) ItemAt(x int, y int) *TablelistItem {
+	idx, err := evalAsString(fmt.Sprintf("%v nearestcell %v %v", w.id, x, y))
+	if err != nil {
+		return nil
+	}
+	if idx == "" {
+		return nil
+	}
+	id, _ := evalAsString(fmt.Sprintf("%v get %v", w.id, idx))
+	return &TablelistItem{w, id}
+}
+
+func (w *Tablelist) OnDoubleClickedItem(fn func(item *TablelistItem)) {
+	if fn == nil {
+		return
+	}
+	w.BindEvent("<Double-ButtonPress-1>", func(e *Event) {
+		item := w.ItemAt(e.PosX, e.PosY)
+		fn(item)
+	})
+}
+
+func (w *Tablelist) SetXViewArgs(args []string) error {
+	return eval(fmt.Sprintf("%v xview %v", w.id, strings.Join(args, " ")))
+}
+
+func (w *Tablelist) SetYViewArgs(args []string) error {
+	return eval(fmt.Sprintf("%v yview %v", w.id, strings.Join(args, " ")))
+}
+
+func (w *Tablelist) OnXScrollEx(fn func([]string) error) error {
+	if fn == nil {
+		return ErrInvalid
+	}
+	if w.xscrollcommand == nil {
+		w.xscrollcommand = &CommandEx{}
+		bindCommandEx(w.id, "xscrollcommand", w.xscrollcommand.Invoke)
+	}
+	w.xscrollcommand.Bind(fn)
+	return nil
+}
+
+func (w *Tablelist) OnYScrollEx(fn func([]string) error) error {
+	if fn == nil {
+		return ErrInvalid
+	}
+	if w.yscrollcommand == nil {
+		w.yscrollcommand = &CommandEx{}
+		bindCommandEx(w.id, "yscrollcommand", w.yscrollcommand.Invoke)
+	}
+	w.yscrollcommand.Bind(fn)
+	return nil
+}
+
+func (w *Tablelist) BindXScrollBar(bar *ScrollBar) error {
+	if !IsValidWidget(bar) {
+		return ErrInvalid
+	}
+	w.OnXScrollEx(bar.SetScrollArgs)
+	bar.OnCommandEx(w.SetXViewArgs)
+	return nil
+}
+
+func (w *Tablelist) BindYScrollBar(bar *ScrollBar) error {
+	if !IsValidWidget(bar) {
+		return ErrInvalid
+	}
+	w.OnYScrollEx(bar.SetScrollArgs)
+	bar.OnCommandEx(w.SetYViewArgs)
+	return nil
+}
+
+type TablelistEx struct {
+	*ScrollLayout
+	*Tablelist
+}
+
+func NewTablelistEx(parent Widget, attributs ...*WidgetAttr) *TablelistEx {
+	w := &TablelistEx{}
+	w.ScrollLayout = NewScrollLayout(parent)
+	w.Tablelist = NewTablelist(parent, attributs...)
+	w.SetWidget(w.Tablelist)
+	w.Tablelist.BindXScrollBar(w.XScrollBar)
+	w.Tablelist.BindYScrollBar(w.YScrollBar)
+	RegisterWidget(w)
+	return w
+}
+
+func TablelistAttrTakeFocus(takefocus bool) *WidgetAttr {
+	return &WidgetAttr{"takefocus", boolToInt(takefocus)}
+}
+
+func TablelistAttrHeight(row int) *WidgetAttr {
+	return &WidgetAttr{"height", row}
+}
+
+func TablelistAttrPadding(padding Pad) *WidgetAttr {
+	return &WidgetAttr{"padding", padding}
+}
+
+func TablelistAttrTreeSelectMode(mode TreeSelectMode) *WidgetAttr {
+	return &WidgetAttr{"selectmode", mode}
+}

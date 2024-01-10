@@ -220,6 +220,8 @@ func (p *Interp) GetListObjResult() *ListObj {
 }
 
 func (p *Interp) Eval(script string) error {
+	println(script)
+	println("---")
 	cs := C.CString(script)
 	defer C.free(unsafe.Pointer(cs))
 	if C.Tcl_EvalEx(p.interp, cs, C.int(len(script)), 0) != TCL_OK {
