@@ -6,14 +6,11 @@ import (
 	"strings"
 )
 
+// todo: distinguish column Name and Title
 type TablelistColumn struct {
 	Width int
 	Title string
 	Align string
-}
-
-func (tlc TablelistColumn) String() string {
-	return fmt.Sprintf(`%d "%s" %s`, tlc.Width, tlc.Title, tlc.Align)
 }
 
 type TablelistSelectMode string
@@ -155,40 +152,33 @@ untested
 		return r == "tree"
 	}
 */
-func (w *Tablelist) SetColumnCount(columns int) error {
-	if columns < 1 {
-		return ErrInvalid
-	}
-	var ids []string
-	for i := 0; i < columns; i++ {
-		ids = append(ids, TablelistColumn{}.String())
-	}
-	//fmt.Println(evalAsString(fmt.Sprintf("%v configure -columns", w.id)))
-	return eval(fmt.Sprintf("%v configure -columns {%v}", w.id, strings.Join(ids, " ")))
+
+func (w *Tablelist) DeleteAllColumns() error {
+	return eval(fmt.Sprintf("%v deletecolumns 0 end", w.id))
 }
 
+// "Inserts the columns specified by the list columnList" from index 0
 func (w *Tablelist) SetColumns(columns []TablelistColumn) error {
 	if len(columns) == 0 {
 		return nil
 	}
 	var tlc_strings []string
 	for _, tlc := range columns {
-		tlc_strings = append(tlc_strings, tlc.String())
+		tlc_strings = append(tlc_strings, fmt.Sprintf(`%d %v %s`, tlc.Width, Quote(tlc.Title), tlc.Align))
 	}
-	return eval(fmt.Sprintf("%v configure -columns {%v}", w.id, strings.Join(tlc_strings, " ")))
+	return eval(fmt.Sprintf("%v insertcolumnlist 0 {%v}", w.id, strings.Join(tlc_strings, " ")))
 }
 
 // "Inserts the columns specified by the list columnList just before the column given by columnIndex"
-
 func (w *Tablelist) SetColumnsAt(index int, columns []TablelistColumn) error {
 	if len(columns) == 0 {
 		return nil
 	}
 	var tlc_strings []string
 	for _, tlc := range columns {
-		tlc_strings = append(tlc_strings, tlc.String())
+		tlc_strings = append(tlc_strings, fmt.Sprintf(`%v %v %s`, tlc.Width, Quote(tlc.Title), tlc.Align))
 	}
-	return eval(fmt.Sprintf("%v insertcolumnlist %d {%v}", w.id, index, strings.Join(tlc_strings, " ")))
+	return eval(fmt.Sprintf("%v insertcolumnlist %v {%v}", w.id, index, strings.Join(tlc_strings, " ")))
 }
 
 func (w *Tablelist) ColumnCount() int {
@@ -297,12 +287,16 @@ func (w *Tablelist) ToplevelItems() []*TablelistItem {
 }
 
 // "Inserts zero or more new items in the widget's internal list just before the item given by index"
-func (tl *Tablelist) Insert(index int, item_list [][]string) []*TablelistItem {
+func (w *Tablelist) Insert(index int, item_list [][]string) []*TablelistItem {
 	item_strings := []string{}
 	for _, val_list := range item_list {
-		item_strings = append(item_strings, fmt.Sprintf("{%v}", strings.Join(val_list, " ")))
+		cell_list := []string{}
+		for _, val := range val_list {
+			cell_list = append(cell_list, fmt.Sprintf("%v", Quote(val)))
+		}
+		item_strings = append(item_strings, fmt.Sprintf(`{%v}`, strings.Join(cell_list, " ")))
 	}
-	id_list, err := evalAsStringList(fmt.Sprintf("%v insert 0 %v", tl.id, strings.Join(item_strings, " ")))
+	id_list, err := evalAsStringList(fmt.Sprintf("%v insert 0 %v", w.id, strings.Join(item_strings, " ")))
 	if err != nil {
 		return nil
 	}
@@ -314,10 +308,26 @@ func (tl *Tablelist) Insert(index int, item_list [][]string) []*TablelistItem {
 
 	result := []*TablelistItem{}
 	for _, id := range id_list {
-		result = append(result, &TablelistItem{tl, id})
+		result = append(result, &TablelistItem{w, id})
 	}
 
 	return result
+}
+
+func (w *Tablelist) InsertSingle(index int, item_list []string) []*TablelistItem {
+	return w.Insert(index, [][]string{item_list})
+}
+
+func (w *Tablelist) InsertChildList(pidx int, cidx int, item_list [][]string) error {
+	item_strings := []string{}
+	for _, val_list := range item_list {
+		cell_list := []string{}
+		for _, val := range val_list {
+			cell_list = append(cell_list, fmt.Sprintf("%v", Quote(val)))
+		}
+		item_strings = append(item_strings, fmt.Sprintf(`{%v}`, strings.Join(cell_list, " ")))
+	}
+	return eval(fmt.Sprintf("%v insertchildlist %v %v {%v}", w.id, pidx, cidx, strings.Join(item_strings, " ")))
 }
 
 /*
@@ -340,6 +350,7 @@ func (tl *Tablelist) Insert(index int, item_list [][]string) []*TablelistItem {
 		return &TablelistItem{w, cid}
 	}
 */
+
 func (w *Tablelist) DeleteItem(item *TablelistItem) error {
 	if !w.IsValidItem(item) || item.IsRoot() {
 		return ErrInvalid
@@ -348,15 +359,11 @@ func (w *Tablelist) DeleteItem(item *TablelistItem) error {
 }
 
 func (w *Tablelist) DeleteAllItems() error {
-	var ids []string
-	for _, item := range w.RootItem().Children() {
-		ids = append(ids, item.Id())
-	}
-	if len(ids) == 0 {
-		return ErrInvalid
-	}
-	setObjTextList("atk_tmp_items", ids)
-	return eval(fmt.Sprintf("%v delete $atk_tmp_items", w.id))
+	return eval(fmt.Sprintf("%v delete 0 end", w.id))
+}
+
+func (w *Tablelist) MovableColumns(b bool) error {
+	return eval(fmt.Sprintf("%v configure -movablecolumns %v", w.id, b))
 }
 
 func (w *Tablelist) MoveItem(item *TablelistItem, parent *TablelistItem, index int) error {
@@ -371,6 +378,10 @@ func (w *Tablelist) MoveItem(item *TablelistItem, parent *TablelistItem, index i
 		pid = parent.id
 	}
 	return eval(fmt.Sprintf("%v move {%v} {%v} %v", w.id, item.id, pid, index))
+}
+
+func (w *Tablelist) RefreshSorting(parentNodeIndex int) error {
+	return eval(fmt.Sprintf("%v refreshsorting %v", w.id, parentNodeIndex))
 }
 
 func (w *Tablelist) ScrollTo(item *TablelistItem) error {
