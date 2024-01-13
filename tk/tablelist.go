@@ -3,6 +3,7 @@ package tk
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -278,6 +279,7 @@ func (w *Tablelist) IsValidItem(item *TablelistItem) bool {
 	return item != nil && item.tablelist != nil && item.tablelist.id == w.id
 }
 
+/*
 func (w *Tablelist) RootItem() *TablelistItem {
 	return &TablelistItem{w, ""}
 }
@@ -285,7 +287,7 @@ func (w *Tablelist) RootItem() *TablelistItem {
 func (w *Tablelist) ToplevelItems() []*TablelistItem {
 	return w.RootItem().Children()
 }
-
+*/
 // "Inserts zero or more new items in the widget's internal list just before the item given by index"
 func (w *Tablelist) Insert(index int, item_list [][]string) []*TablelistItem {
 	item_strings := []string{}
@@ -318,7 +320,44 @@ func (w *Tablelist) InsertSingle(index int, item_list []string) []*TablelistItem
 	return w.Insert(index, [][]string{item_list})
 }
 
-func (w *Tablelist) InsertChildList(pidx int, cidx int, item_list [][]string) error {
+func (w *Tablelist) InsertChildren(pidx interface{}, cidx int, item_list [][]string) error {
+	var pidx_str string
+
+	switch t := pidx.(type) {
+	case string:
+		// todo: ensure valid string value, i.e. 'root', 'end', etc.
+		pidx_str = t
+	case int:
+		pidx_str = strconv.Itoa(t)
+	default:
+		panic("programming error, InsertChildren received unsupported type for 'pidx'. pidx must be an int or a string")
+	}
+
+	child_list := []string{}
+	for _, item := range item_list {
+		child_row := []string{}
+		for _, cell := range item {
+			child_row = append(child_row, fmt.Sprintf("%v", Quote(cell)))
+		}
+		child_list = append(child_list, fmt.Sprintf("{%v}", strings.Join(child_row, " ")))
+	}
+
+	return eval(fmt.Sprintf("%v insertchildren %v %v %v", w.id, pidx_str, cidx, strings.Join(child_list, " ")))
+}
+
+func (w *Tablelist) InsertChildList(pidx interface{}, cidx int, item_list [][]string) error {
+	var pidx_str string
+
+	switch t := pidx.(type) {
+	case string:
+		// todo: ensure valid string value, i.e. 'root', 'end', etc.
+		pidx_str = t
+	case int:
+		pidx_str = strconv.Itoa(t)
+	default:
+		panic("programming error, InsertChildList received unsupported type for 'pidx'. pidx must be an int or a string")
+	}
+
 	item_strings := []string{}
 	for _, val_list := range item_list {
 		cell_list := []string{}
@@ -327,7 +366,7 @@ func (w *Tablelist) InsertChildList(pidx int, cidx int, item_list [][]string) er
 		}
 		item_strings = append(item_strings, fmt.Sprintf(`{%v}`, strings.Join(cell_list, " ")))
 	}
-	return eval(fmt.Sprintf("%v insertchildlist %v %v {%v}", w.id, pidx, cidx, strings.Join(item_strings, " ")))
+	return eval(fmt.Sprintf("%v insertchildlist %v %v {%v}", w.id, pidx_str, cidx, strings.Join(item_strings, " ")))
 }
 
 /*
@@ -388,13 +427,16 @@ func (w *Tablelist) ScrollTo(item *TablelistItem) error {
 	if !w.IsValidItem(item) || item.IsRoot() {
 		return ErrInvalid
 	}
-	children := w.RootItem().Children()
-	if len(children) == 0 {
-		return ErrInvalid
-	}
-	//fix see bug: first scroll to root
-	eval(fmt.Sprintf("%v see %v", w.id, children[0].id))
-	return eval(fmt.Sprintf("%v see %v", w.id, item.id))
+	/*
+		children := w.RootItem().Children()
+		if len(children) == 0 {
+			return ErrInvalid
+		}
+		//fix see bug: first scroll to root
+		eval(fmt.Sprintf("%v see %v", w.id, children[0].id))
+		return eval(fmt.Sprintf("%v see %v", w.id, item.id))
+	*/
+	panic("not implemented")
 }
 
 func (w *Tablelist) CurrentIndex() *TablelistItem {
@@ -488,12 +530,29 @@ func (w *Tablelist) ToggleSelectionList(items []*TablelistItem) error {
 	return eval(fmt.Sprintf("%v selection toggle {%v}", w.id, strings.Join(ids, " ")))
 }
 
+// "... expands all top-level rows of a tablelist used as a tree widget, i.e., makes all their children visible."
+// "... the command will be performed recursively, i.e., all of the descendants of the top-level nodes will be displayed."
 func (w *Tablelist) ExpandAll() error {
-	return w.RootItem().ExpandAll()
+	return eval(fmt.Sprintf("%v expandall -fully", w.id))
 }
 
-func (w *Tablelist) CollepseAll() error {
-	return w.RootItem().CollapseAll()
+// "... expands all top-level rows of a tablelist used as a tree widget, i.e., makes all their children visible."
+// "... restricts the operation to just one hierarchy level, indicating that only the children of the top-level
+// nodes will be displayed, without changing the expanded/collapsed state of the child nodes."
+func (w *Tablelist) ExpandAllPartly() error {
+	return eval(fmt.Sprintf("%v expandall -partly", w.id))
+}
+
+// "... collapses all top-level rows of a tablelist used as a tree widget, i.e., elides all their descendants."
+// "... the command will be performed recursively, i.e., all of the descendants of the top-level nodes will be collapsed ..."
+func (w *Tablelist) CollapseAll() error {
+	return eval(fmt.Sprintf("%v collapseall -fully", w.id))
+}
+
+// "... collapses all top-level rows of a tablelist used as a tree widget, i.e., elides all their descendants."
+// "... restricts the operation to just one hierarchy level ..."
+func (w *Tablelist) CollapseAllPartly() error {
+	return eval(fmt.Sprintf("%v collapseall -partly", w.id))
 }
 
 func (w *Tablelist) Expand(item *TablelistItem) error {
