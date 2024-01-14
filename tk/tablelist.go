@@ -7,20 +7,61 @@ import (
 	"strings"
 )
 
-// todo: distinguish column Name and Title
+// https://www.nemethi.de/tablelist/tablelistWidget.html#col_options
 type TablelistColumn struct {
-	Width int
-	Title string
 	Align string
+	// background
+	// changesnipside
+	// changetitlesnipside
+	// editable
+	// editwindow
+	// font
+	// foreground
+	// formatcommand
+	// hide
+	// labelalign
+	// labelbackground
+	// labelborderwidth
+	// labelcommand
+	// labelcommand2
+	// labelfont
+	// labelforeground
+	// labelheight
+	// labelpady
+	// labelrelief
+	// selectfiltercommand
+	// labelimage
+	// labelvalign
+	// labelwindow
+	// maxwidth
+	// name
+	// resizable
+	// selectbackground
+	// selectforeground
+	// showarrow
+	// showlinenumbers
+	// sortcommand
+	// sortmode
+	// stretchable
+	// stretchwindow
+	// stripebackground
+	// stripeforeground
+	// text
+	Title string
+	// valign
+	Width int
+	// windowdestroy
+	// windowupdate
+	// wrap
 }
 
 type TablelistSelectMode string
 
 const (
 	TablelistSelectSingle   TablelistSelectMode = "single"
-	TablelistSelectBrowse                       = "browse"
-	TablelistSelectMultiple                     = "multiple"
-	TablelistSelectExtended                     = "extended"
+	TablelistSelectBrowse   TablelistSelectMode = "browse"
+	TablelistSelectMultiple TablelistSelectMode = "multiple"
+	TablelistSelectExtended TablelistSelectMode = "extended"
 )
 
 type Tablelist struct {
@@ -158,28 +199,26 @@ func (w *Tablelist) DeleteAllColumns() error {
 	return eval(fmt.Sprintf("%v deletecolumns 0 end", w.id))
 }
 
-// "Inserts the columns specified by the list columnList" from index 0
-func (w *Tablelist) SetColumns(columns []TablelistColumn) error {
-	if len(columns) == 0 {
-		return nil
-	}
-	var tlc_strings []string
-	for _, tlc := range columns {
-		tlc_strings = append(tlc_strings, fmt.Sprintf(`%d %v %s`, tlc.Width, Quote(tlc.Title), tlc.Align))
-	}
-	return eval(fmt.Sprintf("%v insertcolumnlist 0 {%v}", w.id, strings.Join(tlc_strings, " ")))
-}
-
 // "Inserts the columns specified by the list columnList just before the column given by columnIndex"
-func (w *Tablelist) SetColumnsAt(index int, columns []TablelistColumn) error {
+func (w *Tablelist) InsertColumnList(index interface{}, columns []TablelistColumn) error {
 	if len(columns) == 0 {
 		return nil
+	}
+	var index_str string
+	switch t := index.(type) {
+	case int:
+		// todo: enum valid vals
+		index_str = strconv.Itoa(t)
+	case string:
+		index_str = t
+	default:
+		panic("programming error, InsertColumnList received unsupported type for 'index'. index must be an int or a string")
 	}
 	var tlc_strings []string
 	for _, tlc := range columns {
 		tlc_strings = append(tlc_strings, fmt.Sprintf(`%v %v %s`, tlc.Width, Quote(tlc.Title), tlc.Align))
 	}
-	return eval(fmt.Sprintf("%v insertcolumnlist %v {%v}", w.id, index, strings.Join(tlc_strings, " ")))
+	return eval(fmt.Sprintf("%v insertcolumnlist %v {%v}", w.id, index_str, strings.Join(tlc_strings, " ")))
 }
 
 func (w *Tablelist) ColumnCount() int {
@@ -557,6 +596,24 @@ func (w *Tablelist) CollapseAllPartly() error {
 
 func (w *Tablelist) Expand(item *TablelistItem) error {
 	return w.SetExpanded(item, true)
+}
+
+// [does not work]
+// "Returns the list of full keys of the expanded items."
+func (w *Tablelist) ExpandedKeys() []int {
+	key_list, err := evalAsIntList(fmt.Sprintf("%v expandedkeys", w.id))
+	dumpError(err)
+	return key_list
+}
+
+// [does not work]
+// "returns a list ... of items between firstIndex and lastIndex, inclusive."
+// "The [mod] argument can be used to restrict the items when building the result list.
+// The default value -all means: no restriction.
+// The value -nonhidden filters out the items whose row has its -hide option set to true.
+// Finally, the value -viewable restricts the items to the viewable ones.
+func (w *Tablelist) GetKeys(fidx, lidx int, mod string) (string, error) {
+	return evalAsString(fmt.Sprintf("%v getkeys %v %v %v", w.id, fidx, lidx, mod))
 }
 
 func (w *Tablelist) Collapse(item *TablelistItem) error {
