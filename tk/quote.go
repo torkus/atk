@@ -6,25 +6,9 @@ package tk
 
 import (
 	"bytes"
-	"strings"
 	"unicode"
 	"unicode/utf8"
 )
-
-// A special type which can be passed to Interpreter.Eval method family as the
-// only argument and in that case you can use named abbreviations within format
-// tags.
-type ArgMap map[string]interface{}
-
-func split_tag(tag string) (abbrev, format string) {
-	abbrev = tag
-	format = ""
-	if i := strings.Index(tag, "%"); i != -1 {
-		abbrev = tag[:i]
-		format = tag[i:]
-	}
-	return
-}
 
 func quote_rune(buf *bytes.Buffer, r rune, size int) {
 	const lowerhex = "0123456789abcdef"
