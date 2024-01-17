@@ -768,10 +768,12 @@ type TablelistEx struct {
 	*Tablelist
 }
 
-func NewTablelistEx(parent Widget, attributs ...*WidgetAttr) *TablelistEx {
+// a composite widget consisting of `Tablelist` and scrollbars bound to scroll events,
+// wrapped in a `ScrollLayout`.
+func NewTablelistEx(parent Widget, attributes ...*WidgetAttr) *TablelistEx {
 	w := &TablelistEx{}
 	w.ScrollLayout = NewScrollLayout(parent)
-	w.Tablelist = NewTablelist(parent, attributs...)
+	w.Tablelist = NewTablelist(parent, attributes...)
 	w.SetWidget(w.Tablelist)
 	w.Tablelist.BindXScrollBar(w.XScrollBar)
 	w.Tablelist.BindYScrollBar(w.YScrollBar)
