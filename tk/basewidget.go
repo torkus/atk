@@ -3,6 +3,7 @@
 package tk
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -73,9 +74,11 @@ func (w *BaseWidget) DestroyChildren() error {
 
 func (w *BaseWidget) NativeAttribute(key string) string {
 	if !IsValidWidget(w) {
+		dumpError(fmt.Errorf("invalid widget: %s", w))
 		return ""
 	}
 	if !w.info.MetaClass.HasAttribute(key) {
+		dumpError(errors.New("no such attribute: " + key))
 		return ""
 	}
 	r, _ := evalAsString(fmt.Sprintf("%v cget -%v", w.id, key))
