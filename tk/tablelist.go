@@ -658,6 +658,25 @@ func (w *Tablelist) OnSelectionChanged(fn func()) error {
 	})
 }
 
+type TL_ROW_STATE string
+
+const (
+	TL_ROW_ALL       TL_ROW_STATE = "-all"
+	TL_ROW_NONHIDDEN TL_ROW_STATE = "-nonhidden"
+	TL_ROW_VIEWABLE  TL_ROW_STATE = "-viewable"
+)
+
+// "Returns a list containing the numerical indices of all of the items in the tablelist that contain at least one selected element."
+func (w *Tablelist) CurSelectionWithState(state TL_ROW_STATE) []int {
+	idx_list, _ := evalAsIntList(fmt.Sprintf("%v curselection %v", w.id, state))
+	return idx_list
+}
+
+// "Returns a list containing the numerical indices of all of the items in the tablelist that contain at least one selected element."
+func (w *Tablelist) CurSelection() []int {
+	return w.CurSelectionWithState(TL_ROW_ALL)
+}
+
 /*
 func (w *Tablelist) OnItemExpanded(fn func()) error {
 	if fn == nil {
@@ -669,6 +688,7 @@ func (w *Tablelist) OnItemExpanded(fn func()) error {
 }
 */
 
+/*
 func (w *Tablelist) OnItemCollapsed(fn func()) error {
 	if fn == nil {
 		return ErrInvalid
@@ -677,6 +697,7 @@ func (w *Tablelist) OnItemCollapsed(fn func()) error {
 		fn()
 	})
 }
+*/
 
 /*
 func (w *Tablelist) ItemAt(x int, y int) *TablelistItem {
