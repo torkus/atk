@@ -133,6 +133,14 @@ func (w *Tablelist) Height() int {
 	return r
 }
 
+func (w *Tablelist) RowCget(idx int, option string) (string, error) {
+	return evalAsString(fmt.Sprintf("%v rowcget %v %v", w.id, idx, option))
+}
+
+func (w *Tablelist) RowConfigure(idx string, key string, value string) error {
+	return eval(fmt.Sprintf("%v rowconfigure %v %v %v", w.id, idx, key, value))
+}
+
 /*
 
 func (w *Tablelist) SetPaddingN(padx int, pady int) error {
@@ -359,7 +367,7 @@ func (w *Tablelist) InsertSingle(index int, item_list []string) []*TablelistItem
 	return w.Insert(index, [][]string{item_list})
 }
 
-func (w *Tablelist) InsertChildren(pidx interface{}, cidx int, item_list [][]string) error {
+func (w *Tablelist) InsertChildren(pidx interface{}, cidx int, item_list [][]string) ([]string, error) {
 	var pidx_str string
 
 	switch t := pidx.(type) {
@@ -381,10 +389,10 @@ func (w *Tablelist) InsertChildren(pidx interface{}, cidx int, item_list [][]str
 		child_list = append(child_list, fmt.Sprintf("{%v}", strings.Join(child_row, " ")))
 	}
 
-	return eval(fmt.Sprintf("%v insertchildren %v %v %v", w.id, pidx_str, cidx, strings.Join(child_list, " ")))
+	return evalAsStringList(fmt.Sprintf("%v insertchildren %v %v %v", w.id, pidx_str, cidx, strings.Join(child_list, " ")))
 }
 
-func (w *Tablelist) InsertChildList(pidx interface{}, cidx int, item_list [][]string) error {
+func (w *Tablelist) InsertChildList(pidx interface{}, cidx int, item_list [][]string) ([]string, error) {
 	var pidx_str string
 
 	switch t := pidx.(type) {
@@ -405,7 +413,7 @@ func (w *Tablelist) InsertChildList(pidx interface{}, cidx int, item_list [][]st
 		}
 		item_strings = append(item_strings, fmt.Sprintf(`{%v}`, strings.Join(cell_list, " ")))
 	}
-	return eval(fmt.Sprintf("%v insertchildlist %v %v {%v}", w.id, pidx_str, cidx, strings.Join(item_strings, " ")))
+	return evalAsStringList(fmt.Sprintf("%v insertchildlist %v %v {%v}", w.id, pidx_str, cidx, strings.Join(item_strings, " ")))
 }
 
 /*
