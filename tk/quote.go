@@ -83,12 +83,20 @@ func quote(buf *bytes.Buffer, s string) {
 	buf.WriteString(`"`)
 }
 
-// Works exactly like Eval("%{%q}"), but instead of evaluating returns a quoted
-// string.
+// Works exactly like Eval("%{%q}"), but instead of evaluating returns a quoted string.
 func Quote(s string) string {
 	var tmp bytes.Buffer
 	quote(&tmp, s)
 	return tmp.String()
+}
+
+// Quotes each string in given `string_list`.
+func QuoteAll(string_list []string) []string {
+	new_string_list := []string{}
+	for _, str := range string_list {
+		new_string_list = append(new_string_list, Quote(str))
+	}
+	return new_string_list
 }
 
 // Quotes the rune just like if it was passed through Quote, the result is the
