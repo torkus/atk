@@ -71,6 +71,14 @@ type Tablelist struct {
 }
 
 func NewTablelist(parent Widget, attributes ...*WidgetAttr) *Tablelist {
+
+	// "Specifies a Tcl command to be invoked when expanding a row of a tablelist used as a tree widget"
+	attributes = append(attributes, &WidgetAttr{Key: "expandcommand", Value: "tablelistExpandCmd"})
+
+	attributes = append(attributes, &WidgetAttr{Key: "collapsecommand", Value: "tablelistCollapseCmd"})
+
+	attributes = append(attributes, &WidgetAttr{Key: "populatecommand", Value: "tablelistPopulateCmd"})
+
 	theme := checkInitUseTheme(attributes)
 	iid := makeNamedWidgetId(parent, "atk_tablelist")
 	info := CreateWidgetInfo(iid, WidgetTypeTablelist, theme, attributes)
@@ -81,6 +89,26 @@ func NewTablelist(parent Widget, attributes ...*WidgetAttr) *Tablelist {
 	w.id = iid
 	w.info = info
 	RegisterWidget(w)
+
+	// generates virtual events 'TablelistRowExpand' and 'TablelistRowCollapse'.
+	// use `Tablelist.OnItemExpanded` and `Tablelist.OnItemCollapsed` to handle these events.
+	// row index is available as `Event.UserData[0]`
+	// todo: get key for idx, pass it as second parameter
+	// todo: populate command not working
+	expand_collapse_cmd_proc := `
+proc tablelistExpandCmd {tbl row} {
+    event generate $tbl <<TablelistRowExpand>> -when now -data $row
+}
+proc tablelistCollapseCmd {tbl row} {
+    event generate $tbl <<TablelistRowCollapse>> -when now -data $row
+}
+proc tablelistPopulateCmd {tbl row} {
+    event generate $tbl <<TablelistRowPopulate>> -when now -data $row
+}
+`
+	err := eval(expand_collapse_cmd_proc)
+	dumpError(err)
+
 	return w
 }
 
@@ -104,17 +132,6 @@ func (w *Tablelist) SetLabelCommand2AddToSortColumns() {
 	w.SetLabelCommand2("tablelist::addToSortColumns")
 }
 
-func (w *Tablelist) Attach(id string) error {
-	info, err := CheckWidgetInfo(id, WidgetTypeTablelist)
-	if err != nil {
-		return err
-	}
-	w.id = id
-	w.info = info
-	RegisterWidget(w)
-	return nil
-}
-
 func (w *Tablelist) SetTakeFocus(takefocus bool) error {
 	return eval(fmt.Sprintf("%v configure -takefocus {%v}", w.id, boolToInt(takefocus)))
 }
@@ -123,56 +140,6 @@ func (w *Tablelist) IsTakeFocus() bool {
 	r, _ := evalAsBool(fmt.Sprintf("%v cget -takefocus", w.id))
 	return r
 }
-
-func (w *Tablelist) SetHeight(row int) error {
-	return eval(fmt.Sprintf("%v configure -height {%v}", w.id, row))
-}
-
-func (w *Tablelist) Height() int {
-	r, _ := evalAsInt(fmt.Sprintf("%v cget -height", w.id))
-	return r
-}
-
-func (w *Tablelist) RowCget(idx int, option string) (string, error) {
-	return evalAsString(fmt.Sprintf("%v rowcget %v %v", w.id, idx, option))
-}
-
-func (w *Tablelist) RowConfigure(idx string, key string, value string) error {
-	return eval(fmt.Sprintf("%v rowconfigure %v %v %v", w.id, idx, key, value))
-}
-
-/*
-
-func (w *Tablelist) SetPaddingN(padx int, pady int) error {
-	if w.info.IsTtk {
-		return eval(fmt.Sprintf("%v configure -padding {%v %v}", w.id, padx, pady))
-	}
-	return eval(fmt.Sprintf("%v configure -padx {%v} -pady {%v}", w.id, padx, pady))
-}
-
-
-	func (w *Tablelist) PaddingN() (int, int) {
-		var r string
-		var err error
-		if w.info.IsTtk {
-			r, err = evalAsString(fmt.Sprintf("%v cget -padding", w.id))
-		} else {
-			r1, _ := evalAsString(fmt.Sprintf("%v cget -padx", w.id))
-			r2, _ := evalAsString(fmt.Sprintf("%v cget -pady", w.id))
-			r = r1 + " " + r2
-		}
-		return parserPaddingResult(r, err)
-	}
-
-	func (w *Tablelist) SetPadding(pad Pad) error {
-		return w.SetPaddingN(pad.X, pad.Y)
-	}
-
-	func (w *Tablelist) Padding() Pad {
-		x, y := w.PaddingN()
-		return Pad{x, y}
-	}
-*/
 
 func (w *Tablelist) SetSelectMode(mode TablelistSelectMode) error {
 	return eval(fmt.Sprintf("%v configure -selectmode {%v}", w.id, mode))
@@ -235,106 +202,10 @@ func (w *Tablelist) ColumnCount() int {
 
 }
 
-/*
-	func (w *Tablelist) SetHeaderLabels(labels []string) error {
-		for n, label := range labels {
-			setObjText("atk_heading_label", label)
-			err := eval(fmt.Sprintf("%v heading #%v -text $atk_heading_label", w.id, n))
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-
-	func (w *Tablelist) SetHeaderLabel(column int, label string) error {
-		setObjText("atk_heading_label", label)
-		return eval(fmt.Sprintf("%v heading #%v -text $atk_heading_label", w.id, column))
-	}
-
-	func (w *Tablelist) HeaderLabel(column int) string {
-		r, _ := evalAsString(fmt.Sprintf("%v heading #%v -text", w.id, column))
-		return r
-	}
-
-	func (w *Tablelist) SetHeaderImage(column int, img *Image) error {
-		var iid string
-		if img != nil {
-			iid = img.Id()
-		}
-		return eval(fmt.Sprintf("%v heading #%v -image {%v}", w.id, column, iid))
-	}
-
-	func (w *Tablelist) HeaderImage(column int) *Image {
-		r, err := evalAsString(fmt.Sprintf("%v heading #%v -image", w.id, column))
-		return parserImageResult(r, err)
-	}
-
-	func (w *Tablelist) SetHeaderAnchor(column int, anchor Anchor) error {
-		return eval(fmt.Sprintf("%v heading #%v -anchor %v", w.id, column, anchor))
-	}
-
-	func (w *Tablelist) HeaderAnchor(column int) Anchor {
-		r, err := evalAsString(fmt.Sprintf("%v heading #%v -anchor", w.id, column))
-		return parserAnchorResult(r, err)
-	}
-*/
-
-/*
-	func (w *Tablelist) SetColumnWidth(column int, width int) error {
-		return eval(fmt.Sprintf("%v column #%v -width %v", w.id, column, width))
-	}
-
-	func (w *Tablelist) ColumnWidth(column int) int {
-		r, _ := evalAsInt(fmt.Sprintf("%v column #%v -width", w.id, column))
-		return r
-	}
-
-	func (w *Tablelist) SetColumnMinimumWidth(column int, width int) error {
-		return eval(fmt.Sprintf("%v column #%v -minwidth %v", w.id, column, width))
-	}
-
-	func (w *Tablelist) ColumnMinimumWidth(column int) int {
-		r, _ := evalAsInt(fmt.Sprintf("%v column #%v -minwidth", w.id, column))
-		return r
-	}
-
-	func (w *Tablelist) SetColumnAnchor(column int, anchor Anchor) error {
-		return eval(fmt.Sprintf("%v column #%v -anchor %v", w.id, column, anchor))
-	}
-
-	func (w *Tablelist) ColumnAnchor(column int) Anchor {
-		r, err := evalAsString(fmt.Sprintf("%v column #%v -anchor", w.id, column))
-		return parserAnchorResult(r, err)
-	}
-
-// default all column stretch 1
-
-	func (w *Tablelist) SetColumnStretch(column int, stretch bool) error {
-		return eval(fmt.Sprintf("%v column #%v -stretch %v", w.id, column, stretch))
-	}
-
-// default all column stretch 1
-
-	func (w *Tablelist) ColumnStretch(column int) bool {
-		r, _ := evalAsBool(fmt.Sprintf("%v column #%v -stretch", w.id, column))
-		return r
-	}
-*/
-
 func (w *Tablelist) IsValidItem(item *TablelistItem) bool {
 	return item != nil && item.tablelist != nil && item.tablelist.id == w.id
 }
 
-/*
-func (w *Tablelist) RootItem() *TablelistItem {
-	return &TablelistItem{w, ""}
-}
-
-func (w *Tablelist) ToplevelItems() []*TablelistItem {
-	return w.RootItem().Children()
-}
-*/
 // "Inserts zero or more new items in the widget's internal list just before the item given by index"
 func (w *Tablelist) Insert(index int, item_list [][]string) []*TablelistItem {
 	item_strings := []string{}
@@ -392,7 +263,7 @@ func (w *Tablelist) InsertChildren(pidx interface{}, cidx int, item_list [][]str
 	return evalAsStringList(fmt.Sprintf("%v insertchildren %v %v %v", w.id, pidx_str, cidx, strings.Join(child_list, " ")))
 }
 
-func (w *Tablelist) InsertChildList(pidx interface{}, cidx int, item_list [][]string) ([]string, error) {
+func (w *Tablelist) InsertChildList(pidx interface{}, cidx int, item_list [][]string) ([]TablelistItem, error) {
 	var pidx_str string
 
 	switch t := pidx.(type) {
@@ -413,34 +284,18 @@ func (w *Tablelist) InsertChildList(pidx interface{}, cidx int, item_list [][]st
 		}
 		item_strings = append(item_strings, fmt.Sprintf(`{%v}`, strings.Join(cell_list, " ")))
 	}
-	return evalAsStringList(fmt.Sprintf("%v insertchildlist %v %v {%v}", w.id, pidx_str, cidx, strings.Join(item_strings, " ")))
+	key_list, err := evalAsStringList(fmt.Sprintf("%v insertchildlist %v %v {%v}", w.id, pidx_str, cidx, strings.Join(item_strings, " ")))
+	dumpError(err)
+
+	tablelist_item_list := []TablelistItem{}
+	for _, key := range key_list {
+		tablelist_item_list = append(tablelist_item_list, NewTablelistItem(pidx_str, key, w))
+	}
+
+	return tablelist_item_list, err
 }
 
-/*
-	func (w *Tablelist) InsertChildList(parent *TablelistItem, index int, text string, values []string) *TablelistItem {
-		var pid string
-		if parent != nil {
-			if !w.IsValidItem(parent) {
-				return nil
-			}
-			pid = parent.id
-		}
-		//setObjText("atk_tablelist_item", text)
-		//setObjTextList("atk_tablelist_values", values)
-		cid := makeTablelistItemId(w.id, pid)
-
-		err := eval(fmt.Sprintf("%v insert 0 {%v} ", w.id, strings.Join(values, " ")))
-		if err != nil {
-			return nil
-		}
-		return &TablelistItem{w, cid}
-	}
-*/
-
 func (w *Tablelist) DeleteItem(item *TablelistItem) error {
-	if !w.IsValidItem(item) || item.IsRoot() {
-		return ErrInvalid
-	}
 	return eval(fmt.Sprintf("%v delete {%v}", w.id, item.id))
 }
 
@@ -602,10 +457,6 @@ func (w *Tablelist) CollapseAllPartly() error {
 	return eval(fmt.Sprintf("%v collapseall -partly", w.id))
 }
 
-func (w *Tablelist) Expand(item *TablelistItem) error {
-	return w.SetExpanded(item, true)
-}
-
 // [does not work]
 // "Returns the list of full keys of the expanded items."
 func (w *Tablelist) ExpandedKeys() []int {
@@ -624,37 +475,12 @@ func (w *Tablelist) GetKeys(fidx, lidx int, mod string) (string, error) {
 	return evalAsString(fmt.Sprintf("%v getkeys %v %v %v", w.id, fidx, lidx, mod))
 }
 
-func (w *Tablelist) Collapse(item *TablelistItem) error {
-	return w.SetExpanded(item, false)
-}
-
-func (w *Tablelist) SetExpanded(item *TablelistItem, expand bool) error {
-	if !w.IsValidItem(item) || item.IsRoot() {
-		return ErrInvalid
-	}
-	return item.SetExpanded(expand)
-}
-
-func (w *Tablelist) IsExpanded(item *TablelistItem) bool {
-	if !w.IsValidItem(item) || item.IsRoot() {
-		return false
-	}
-	return item.IsExpanded()
-}
-
 func (w *Tablelist) FocusItem() *TablelistItem {
 	r, _ := evalAsString(fmt.Sprintf("%v focus", w.id))
 	if r == "" {
 		return nil
 	}
 	return &TablelistItem{w, r}
-}
-
-func (w *Tablelist) SetFocusItem(item *TablelistItem) error {
-	if !w.IsValidItem(item) || item.IsRoot() {
-		return ErrInvalid
-	}
-	return eval(fmt.Sprintf("%v focus %v", w.id, item.id))
 }
 
 func (w *Tablelist) OnSelectionChanged(fn func()) error {
@@ -664,6 +490,19 @@ func (w *Tablelist) OnSelectionChanged(fn func()) error {
 	return w.BindEvent("<<TablelistSelect>>", func(e *Event) {
 		fn()
 	})
+}
+
+func (w *Tablelist) OnItemExpanded(fn func(*Event)) {
+	w.BindEvent("<<TablelistRowExpand>>", fn)
+}
+
+func (w *Tablelist) OnItemCollapsed(fn func(*Event)) {
+	w.BindEvent("<<TablelistRowCollapse>>", fn)
+}
+
+// 'populate', singular.
+func (w *Tablelist) OnItemPopulate(fn func(*Event)) {
+	w.BindEvent("<<TablelistRowPopulate>>", fn)
 }
 
 type TL_ROW_STATE string
@@ -684,41 +523,6 @@ func (w *Tablelist) CurSelectionWithState(state TL_ROW_STATE) []int {
 func (w *Tablelist) CurSelection() []int {
 	return w.CurSelectionWithState(TL_ROW_ALL)
 }
-
-/*
-func (w *Tablelist) OnItemExpanded(fn func()) error {
-	if fn == nil {
-		return ErrInvalid
-	}
-	return w.BindEvent("<<TreeviewOpen>>", func(e *Event) {
-		fn()
-	})
-}
-*/
-
-/*
-func (w *Tablelist) OnItemCollapsed(fn func()) error {
-	if fn == nil {
-		return ErrInvalid
-	}
-	return w.BindEvent("<<TreeviewSelect>>", func(e *Event) {
-		fn()
-	})
-}
-*/
-
-/*
-func (w *Tablelist) ItemAt(x int, y int) *TablelistItem {
-	id, err := evalAsString(fmt.Sprintf("%v identify item %v %v", w.id, x, y))
-	if err != nil {
-		return nil
-	}
-	if id == "" {
-		return nil
-	}
-	return &TablelistItem{w, id}
-}
-*/
 
 func (w *Tablelist) ItemAt(x int, y int) *TablelistItem {
 	idx, err := evalAsString(fmt.Sprintf("%v nearestcell %v %v", w.id, x, y))

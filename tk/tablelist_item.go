@@ -2,25 +2,16 @@
 
 package tk
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type TablelistItem struct {
 	tablelist *Tablelist
 	id        string
 	//Vals      []string // todo: improve
 }
-
-// ---
-
-// todo: probably belongs in ids.go
-func makeTablelistItemId(treeid string, pid string) string {
-	if pid != "" {
-		return makeNamedId(pid + ".I")
-	}
-	return makeNamedId(treeid + ".I")
-}
-
-// ---
 
 func (t *TablelistItem) Id() string {
 	return t.id
@@ -30,82 +21,29 @@ func (t *TablelistItem) IsValid() bool {
 	return t != nil && t.tablelist != nil
 }
 
-/*
-	func (t *TablelistItem) InsertItem(index int, text string, values []string) *TablelistItem {
-		if !t.IsValid() {
-			return nil
-		}
-		return t.tablelist.InsertItem(t, index, text, values)
-	}
-*/
-func (t *TablelistItem) Index() int {
-	if !t.IsValid() || t.IsRoot() {
-		return -1
-	}
-	r, err := evalAsIntEx(fmt.Sprintf("%v index {%v}", t.tablelist.id, t.id), false)
-	if err != nil {
-		return -1
-	}
-	return r
-}
-
 func (t *TablelistItem) IsRoot() bool {
-	return t.id == ""
+	return t.id == "root"
 }
 
-func (t *TablelistItem) Parent() *TablelistItem {
-	if !t.IsValid() || t.IsRoot() {
-		return nil
+// ---
+
+func makeTablelistItemId(treeid string, pid string, id string) string {
+	if pid != "" {
+		return pid + "." + id // widj.foo.bar
 	}
-	r, err := evalAsStringEx(fmt.Sprintf("%v parent {%v}", t.tablelist.id, t.id), false)
-	if err != nil {
-		return nil
-	}
-	return &TablelistItem{t.tablelist, r}
+	return treeid + "." + id // widj.foo
 }
 
-func (t *TablelistItem) Next() *TablelistItem {
-	if !t.IsValid() || t.IsRoot() {
-		return nil
+func NewTablelistItem(pid string, id string, tablelist *Tablelist) TablelistItem {
+	return TablelistItem{
+		tablelist: tablelist,
+		id:        makeTablelistItemId(tablelist.id, pid, id),
 	}
-	r, err := evalAsStringEx(fmt.Sprintf("%v next {%v}", t.tablelist.id, t.id), false)
-	if err != nil || r == "" {
-		return nil
-	}
-	return &TablelistItem{t.tablelist, r}
 }
 
-func (t *TablelistItem) Prev() *TablelistItem {
-	if !t.IsValid() || t.IsRoot() {
-		return nil
-	}
-	r, err := evalAsStringEx(fmt.Sprintf("%v prev {%v}", t.tablelist.id, t.id), false)
-	if err != nil || r == "" {
-		return nil
-	}
-	return &TablelistItem{t.tablelist, r}
-}
-
-/*
-func (t *TablelistItem) Children() (lst []*TablelistItem) {
-	if !t.IsValid() {
-		return
-	}
-	ids, err := evalAsStringList(fmt.Sprintf("%v children {%v}", t.tree.id, t.id))
-	if err != nil {
-		return
-	}
-	for _, id := range ids {
-		lst = append(lst, &TablelistItem{t.tree, id})
-	}
-	return
-}
-*/
+// ---
 
 func (t *TablelistItem) Children() (lst []*TablelistItem) {
-	if !t.IsValid() {
-		return
-	}
 	ids, err := evalAsStringList(fmt.Sprintf("%v childkeys {%v}", t.tablelist.id, t.id))
 	if err != nil {
 		return
@@ -116,162 +54,158 @@ func (t *TablelistItem) Children() (lst []*TablelistItem) {
 	return
 }
 
-/*
-	func (t *TablelistItem) SetExpanded(expand bool) error {
-		if !t.IsValid() || t.IsRoot() {
-			return ErrInvalid
-		}
-		return eval(fmt.Sprintf("%v item {%v} -open %v", t.tree.id, t.id, expand))
-	}
-*/
-func (t *TablelistItem) SetExpanded(expand bool) error {
-	if !t.IsValid() || t.IsRoot() {
-		return ErrInvalid
-	}
-	if expand {
-		return eval(fmt.Sprintf("%v expand {%v} -partly", t.tablelist.id, t.id))
-	} else {
-		return eval(fmt.Sprintf("%v collapse {%v} -fully", t.tablelist.id, t.id))
-	}
+// --- https://www.nemethi.de/tablelist/tablelistWidget.html#row_options
+
+func (t *TablelistItem) Background() string {
+	sl, _ := evalAsString(fmt.Sprintf("%v rowcget {%v} -background", t.tablelist.id, t.id))
+	return sl
 }
 
+func (t *TablelistItem) SetBackground(background string) error {
+	return eval(fmt.Sprintf("%v rowconfigure {%v} -background %v", t.id, background))
+}
+
+func (t *TablelistItem) Font() string {
+	sl, _ := evalAsString(fmt.Sprintf("%v rowcget {%v} -font", t.tablelist.id, t.id))
+	return sl
+}
+
+func (t *TablelistItem) SetFont(font []string) error {
+	return eval(fmt.Sprintf("%v rowconfigure {%v} -font %v", t.id, font))
+}
+
+func (t *TablelistItem) Foreground() string {
+	sl, _ := evalAsString(fmt.Sprintf("%v rowcget {%v} -foreground", t.tablelist.id, t.id))
+	return sl
+}
+
+func (t *TablelistItem) SetForeground(font []string) error {
+	return eval(fmt.Sprintf("%v rowconfigure {%v} -foreground %v", t.id, font))
+}
+
+func (t *TablelistItem) Hide() bool {
+	sl, _ := evalAsBool(fmt.Sprintf("%v rowcget {%v} -hide", t.tablelist.id, t.id))
+	return sl
+}
+
+func (t *TablelistItem) SetHide(hide bool) error {
+	return eval(fmt.Sprintf("%v rowconfigure {%v} -hide %v", t.id, hide))
+}
+
+func (t *TablelistItem) Name() string {
+	sl, _ := evalAsString(fmt.Sprintf("%v rowcget {%v} -name", t.tablelist.id, t.id))
+	return sl
+}
+
+func (t *TablelistItem) SetName(name string) error {
+	return eval(fmt.Sprintf("%v rowconfigure {%v} -name %v", t.id, Quote(name)))
+}
+
+func (t *TablelistItem) Selectable() bool {
+	sl, _ := evalAsBool(fmt.Sprintf("%v rowcget {%v} -selectable", t.tablelist.id, t.id))
+	return sl
+}
+
+func (t *TablelistItem) SetSelectable(selectable bool) error {
+	return eval(fmt.Sprintf("%v rowconfigure {%v} -name %v", t.id, selectable))
+}
+
+func (t *TablelistItem) SelectBackground() string {
+	sl, _ := evalAsString(fmt.Sprintf("%v rowcget {%v} -selectbackground", t.tablelist.id, t.id))
+	return sl
+}
+
+func (t *TablelistItem) SetSelectBackground(select_background string) error {
+	return eval(fmt.Sprintf("%v rowconfigure {%v} -selectbackground %v", t.id, select_background))
+}
+
+func (t *TablelistItem) SelectForeground() string {
+	sl, _ := evalAsString(fmt.Sprintf("%v rowcget {%v} -selectforeground", t.tablelist.id, t.id))
+	return sl
+}
+
+func (t *TablelistItem) SetSelectForeground(select_foreground string) error {
+	return eval(fmt.Sprintf("%v rowconfigure {%v} -selectforeground %v", t.id, select_foreground))
+}
+
+func (t *TablelistItem) Text() []string {
+	sl, _ := evalAsStringList(fmt.Sprintf("%v rowcget {%v} -text", t.tablelist.id, t.id))
+	return sl
+}
+
+func (t *TablelistItem) SetText(text []string) error {
+	return eval(fmt.Sprintf("%v rowconfigure {%v} -text %v", t.id, strings.Join(QuoteAll(text), " ")))
+}
+
+// --- Tablelist-level commands that target TablelistItems
+
 /*
+   pathName activate index
+   pathName bbox index
+   pathName childcount nodeIndex
+   pathName childindex index
+   pathName childkeys nodeIndex
+   (!) pathName collapse indexList ?-fully|-partly?
+   pathName configrowlist {index option value index option value ...}
+   pathName configrows ?index option value index option value ...?
+   pathName delete firstIndex lastIndex
+   pathName depth nodeIndex
+   pathName descendantcount nodeIndex
+   (!) pathName expand indexList ?-fully|-partly?
+   pathName findrowname name ?-descend? ?-parent nodeIndex?
+   pathName getformatted indexList
+   pathName getfullkeys indexList
+   pathName getkeys indexList
+   pathName hasrowattrib index name
+   pathName index index
+   pathName insert index ?item item ...?
+   pathName insertchildlist parentNodeIndex childIndex itemList
+   pathName insertchild(ren) parentNodeIndex childIndex ?item item ...?
+   pathName insertlist index itemList
+   (!) pathName isexpanded index
+   pathName isviewable index
+   pathName move sourceIndex targetIndex
+   pathName move sourceIndex targetParentNodeIndex targetChildIndex
+   pathName noderow parentNodeIndex childIndex
+   pathName parentkey nodeIndex
+   pathName refreshsorting ?parentNodeIndex?
+   pathName rowattrib index ?name? ?value name value ...?
+   pathName rowcget index option
+   pathName rowconfigure index ?option? ?value option value ...?
+   pathName see index
+   pathName togglerowhide indexList
+   pathName toplevelkey index
+   pathName unsetrowattrib index name
+   pathName viewablerowcount ?firstIndex lastIndex?
+*/
+
+// returns true if the row is expanded.
 func (t *TablelistItem) IsExpanded() bool {
-	if !t.IsValid() || t.IsRoot() {
-		return false
-	}
-	r, _ := evalAsBool(fmt.Sprintf("%v item {%v} -open", t.tree.id, t.id))
-	return r
-}
-*/
-
-func (t *TablelistItem) IsExpanded() bool {
-	if !t.IsValid() || t.IsRoot() {
-		return false
-	}
-	ids, _ := evalAsStringList(fmt.Sprintf("%v expanded", t.tablelist.id))
-	for _, id := range ids {
-		if t.id == id {
-			return true
-		}
-	}
-	return false
+	b, _ := evalAsBool(fmt.Sprintf("%v isexpanded {%v}", t.tablelist.id, t.id))
+	return b
 }
 
-/*
-func (t *TablelistItem) expandAll(item *TablelistItem) error {
-	for _, child := range item.Children() {
-		child.SetExpanded(true)
-		t.expandAll(child)
-	}
-	return nil
+// expands row.
+func (t *TablelistItem) Expand() error {
+	return eval(fmt.Sprintf("%v expand {%v} -partly", t.tablelist.id, t.id))
 }
 
+// expands row and all chilren.
 func (t *TablelistItem) ExpandAll() error {
-	return t.expandAll(t)
-}
-*/
-
-func (t *TablelistItem) ExpandAll() error {
-	if !t.IsValid() || t.IsRoot() {
-		return ErrInvalid
-	}
 	return eval(fmt.Sprintf("%v expand {%v} -fully", t.tablelist.id, t.id))
 }
 
-func (t *TablelistItem) collapseAll(item *TablelistItem) error {
-	for _, child := range item.Children() {
-		child.SetExpanded(false)
-		t.collapseAll(child)
-	}
-	return nil
+// returns true if the row is collapsed.
+func (t *TablelistItem) IsCollapsed() bool {
+	return !t.IsExpanded()
 }
 
-func (t *TablelistItem) CollapseAll() error {
-	return t.collapseAll(t)
-}
-
-func (t *TablelistItem) Expand() error {
-	return t.SetExpanded(true)
-}
-
+// collapses row ('partly').
 func (t *TablelistItem) Collapse() error {
-	return t.SetExpanded(false)
+	return eval(fmt.Sprintf("%v collapse {%v} -partly", t.tablelist.id, t.id))
 }
 
-func (t *TablelistItem) SetText(text string) error {
-	if !t.IsValid() || t.IsRoot() {
-		return ErrInvalid
-	}
-	setObjText("atk_tablelist_item", text)
-	return eval(fmt.Sprintf("%v item {%v} -text $atk_tablelist_item", t.tablelist.id, t.id))
-}
-
-func (t *TablelistItem) Text() string {
-	if !t.IsValid() || t.IsRoot() {
-		return ""
-	}
-	r, _ := evalAsString(fmt.Sprintf("%v item {%v} -text", t.tablelist.id, t.id))
-	return r
-}
-
-func (t *TablelistItem) SetValues(values []string) error {
-	if !t.IsValid() || t.IsRoot() {
-		return ErrInvalid
-	}
-	setObjTextList("atk_tablelist_values", values)
-	return eval(fmt.Sprintf("%v item {%v} -values $atk_tablelist_values", t.tablelist.id, t.id))
-}
-
-func (t *TablelistItem) Values() []string {
-	if !t.IsValid() || t.IsRoot() {
-		return nil
-	}
-	r, _ := evalAsStringList(fmt.Sprintf("%v item {%v} -values", t.tablelist.id, t.id))
-	return r
-}
-
-func (t *TablelistItem) SetImage(img *Image) error {
-	if !t.IsValid() || t.IsRoot() {
-		return ErrInvalid
-	}
-	var iid string
-	if img != nil {
-		iid = img.Id()
-	}
-	return eval(fmt.Sprintf("%v item {%v} -image {%v}", t.tablelist.id, t.id, iid))
-}
-
-func (t *TablelistItem) Image() *Image {
-	if !t.IsValid() || t.IsRoot() {
-		return nil
-	}
-	r, err := evalAsString(fmt.Sprintf("%v item {%v} -image", t.tablelist.id, t.id))
-	return parserImageResult(r, err)
-}
-
-func (t *TablelistItem) SetColumnText(column int, text string) error {
-	if column < 0 {
-		return ErrInvalid
-	} else if column == 0 {
-		return t.SetText(text)
-	}
-	if !t.IsValid() || t.IsRoot() {
-		return ErrInvalid
-	}
-	setObjText("atk_tablelist_column", text)
-	return eval(fmt.Sprintf("%v set {%v} %v $atk_tablelist_column", t.tablelist.id, t.id, column-1))
-}
-
-func (t *TablelistItem) ColumnText(column int) string {
-	if column < 0 {
-		return ""
-	} else if column == 0 {
-		return t.Text()
-	}
-	if !t.IsValid() || t.IsRoot() {
-		return ""
-	}
-	r, _ := evalAsString(fmt.Sprintf("%v set {%v} %v", t.tablelist.id, t.id, column-1))
-	return r
+// collapses row and all children ('fully').
+func (t *TablelistItem) CollapseAll() error {
+	return eval(fmt.Sprintf("%v collapse {%v} -fully", t.tablelist.id, t.id))
 }
