@@ -9,8 +9,8 @@ import (
 
 type TablelistItem struct {
 	tablelist *Tablelist
-	id        string
-	//Vals      []string // todo: improve
+	pid       string // parent id, if any. typically "root" in flat lists.
+	id        string // the 'fullkey' given to the item upon insertion.
 }
 
 func (t *TablelistItem) Id() string {
@@ -28,30 +28,32 @@ func (t *TablelistItem) IsRoot() bool {
 // ---
 
 func makeTablelistItemId(treeid string, pid string, id string) string {
-	if pid != "" {
-		return pid + "." + id // widj.foo.bar
-	}
-	return treeid + "." + id // widj.foo
+	return id
+	/*
+		if pid != "" && pid != "root" {
+			return pid + "." + id // widj.foo.bar
+		}
+		return treeid + "." + id // widj.foo
+	*/
 }
 
-func NewTablelistItem(pid string, id string, tablelist *Tablelist) TablelistItem {
-	return TablelistItem{
+func NewTablelistItem(parent_full_key string, full_key string, tablelist *Tablelist) *TablelistItem {
+	return &TablelistItem{
 		tablelist: tablelist,
-		id:        makeTablelistItemId(tablelist.id, pid, id),
+		id:        makeTablelistItemId(tablelist.id, parent_full_key, full_key),
 	}
 }
 
 // ---
 
-func (t *TablelistItem) Children() (lst []*TablelistItem) {
-	ids, err := evalAsStringList(fmt.Sprintf("%v childkeys {%v}", t.tablelist.id, t.id))
-	if err != nil {
-		return
-	}
+// convenience
+func (t *TablelistItem) Children() []*TablelistItem {
+	ids, _ := evalAsStringList(fmt.Sprintf("%v childkeys {%v}", t.tablelist.id, t.id))
+	lst := []*TablelistItem{}
 	for _, id := range ids {
-		lst = append(lst, &TablelistItem{t.tablelist, id})
+		lst = append(lst, NewTablelistItem(t.id, id, t.tablelist))
 	}
-	return
+	return lst
 }
 
 // --- https://www.nemethi.de/tablelist/tablelistWidget.html#row_options
@@ -62,7 +64,7 @@ func (t *TablelistItem) Background() string {
 }
 
 func (t *TablelistItem) SetBackground(background string) error {
-	return eval(fmt.Sprintf("%v rowconfigure {%v} -background %v", t.id, background))
+	return eval(fmt.Sprintf("%v rowconfigure {%v} -background %v", t.tablelist.id, t.id, background))
 }
 
 func (t *TablelistItem) Font() string {
@@ -71,7 +73,7 @@ func (t *TablelistItem) Font() string {
 }
 
 func (t *TablelistItem) SetFont(font []string) error {
-	return eval(fmt.Sprintf("%v rowconfigure {%v} -font %v", t.id, font))
+	return eval(fmt.Sprintf("%v rowconfigure {%v} -font %v", t.tablelist.id, t.id, font))
 }
 
 func (t *TablelistItem) Foreground() string {
@@ -80,7 +82,7 @@ func (t *TablelistItem) Foreground() string {
 }
 
 func (t *TablelistItem) SetForeground(font []string) error {
-	return eval(fmt.Sprintf("%v rowconfigure {%v} -foreground %v", t.id, font))
+	return eval(fmt.Sprintf("%v rowconfigure {%v} -foreground %v", t.tablelist.id, t.id, font))
 }
 
 func (t *TablelistItem) Hide() bool {
@@ -89,7 +91,7 @@ func (t *TablelistItem) Hide() bool {
 }
 
 func (t *TablelistItem) SetHide(hide bool) error {
-	return eval(fmt.Sprintf("%v rowconfigure {%v} -hide %v", t.id, hide))
+	return eval(fmt.Sprintf("%v rowconfigure {%v} -hide %v", t.tablelist.id, t.id, hide))
 }
 
 func (t *TablelistItem) Name() string {
@@ -98,7 +100,7 @@ func (t *TablelistItem) Name() string {
 }
 
 func (t *TablelistItem) SetName(name string) error {
-	return eval(fmt.Sprintf("%v rowconfigure {%v} -name %v", t.id, Quote(name)))
+	return eval(fmt.Sprintf("%v rowconfigure {%v} -name %v", t.tablelist.id, t.id, Quote(name)))
 }
 
 func (t *TablelistItem) Selectable() bool {
@@ -107,7 +109,7 @@ func (t *TablelistItem) Selectable() bool {
 }
 
 func (t *TablelistItem) SetSelectable(selectable bool) error {
-	return eval(fmt.Sprintf("%v rowconfigure {%v} -name %v", t.id, selectable))
+	return eval(fmt.Sprintf("%v rowconfigure {%v} -name %v", t.tablelist.id, t.id, selectable))
 }
 
 func (t *TablelistItem) SelectBackground() string {
@@ -116,7 +118,7 @@ func (t *TablelistItem) SelectBackground() string {
 }
 
 func (t *TablelistItem) SetSelectBackground(select_background string) error {
-	return eval(fmt.Sprintf("%v rowconfigure {%v} -selectbackground %v", t.id, select_background))
+	return eval(fmt.Sprintf("%v rowconfigure {%v} -selectbackground %v", t.tablelist.id, t.id, select_background))
 }
 
 func (t *TablelistItem) SelectForeground() string {
@@ -125,7 +127,7 @@ func (t *TablelistItem) SelectForeground() string {
 }
 
 func (t *TablelistItem) SetSelectForeground(select_foreground string) error {
-	return eval(fmt.Sprintf("%v rowconfigure {%v} -selectforeground %v", t.id, select_foreground))
+	return eval(fmt.Sprintf("%v rowconfigure {%v} -selectforeground %v", t.tablelist.id, t.id, select_foreground))
 }
 
 func (t *TablelistItem) Text() []string {
@@ -134,7 +136,7 @@ func (t *TablelistItem) Text() []string {
 }
 
 func (t *TablelistItem) SetText(text []string) error {
-	return eval(fmt.Sprintf("%v rowconfigure {%v} -text %v", t.id, strings.Join(QuoteAll(text), " ")))
+	return eval(fmt.Sprintf("%v rowconfigure {%v} -text %v", t.tablelist.id, t.id, strings.Join(QuoteAll(text), " ")))
 }
 
 // --- Tablelist-level commands that target TablelistItems
