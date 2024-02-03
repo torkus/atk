@@ -2,74 +2,135 @@ package tk
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 )
 
-// https://www.nemethi.de/tablelist/tablelistWidget.html#col_options
-type TablelistColumn struct {
-	Align string
-	// background
-	// changesnipside
-	// changetitlesnipside
-	// editable
-	// editwindow
-	// font
-	// foreground
-	// formatcommand
-	// hide
-	// labelalign
-	// labelbackground
-	// labelborderwidth
-	// labelcommand
-	// labelcommand2
-	// labelfont
-	// labelforeground
-	// labelheight
-	// labelpady
-	// labelrelief
-	// selectfiltercommand
-	// labelimage
-	// labelvalign
-	// labelwindow
-	// maxwidth
-	// name
-	// resizable
-	// selectbackground
-	// selectforeground
-	// showarrow
-	// showlinenumbers
-	// sortcommand
-	// sortmode
-	// stretchable
-	// stretchwindow
-	// stripebackground
-	// stripeforeground
-	// text
-	Title string
-	// valign
-	Width int
-	// windowdestroy
-	// windowupdate
-	// wrap
+type TABLELIST_SELECT_MODE string
+
+const (
+	TABLELIST_SELECT_MODE_SINGLE   TABLELIST_SELECT_MODE = "single"
+	TABLELIST_SELECT_MODE_BROWSE   TABLELIST_SELECT_MODE = "browse"
+	TABLELIST_SELECT_MODE_MULTIPLE TABLELIST_SELECT_MODE = "multiple"
+	TABLELIST_SELECT_MODE_EXTENDED TABLELIST_SELECT_MODE = "extended"
+)
+
+var TABLELIST_SELECT_MODE_SET = map[TABLELIST_SELECT_MODE]bool{
+	TABLELIST_SELECT_MODE_SINGLE:   true,
+	TABLELIST_SELECT_MODE_BROWSE:   true,
+	TABLELIST_SELECT_MODE_MULTIPLE: true,
+	TABLELIST_SELECT_MODE_EXTENDED: true,
 }
 
-type TablelistSelectMode string
+type TABLELIST_ROW_STATE string
 
 const (
-	TablelistSelectSingle   TablelistSelectMode = "single"
-	TablelistSelectBrowse   TablelistSelectMode = "browse"
-	TablelistSelectMultiple TablelistSelectMode = "multiple"
-	TablelistSelectExtended TablelistSelectMode = "extended"
+	TABLELIST_ROW_STATE_ALL       TABLELIST_ROW_STATE = "-all"
+	TABLELIST_ROW_STATE_NONHIDDEN TABLELIST_ROW_STATE = "-nonhidden"
+	TABLELIST_ROW_STATE_VIEWABLE  TABLELIST_ROW_STATE = "-viewable"
 )
 
-type TL_ROW_STATE string
+type TABLELIST_HALIGN string
 
 const (
-	TL_ROW_ALL       TL_ROW_STATE = "-all"
-	TL_ROW_NONHIDDEN TL_ROW_STATE = "-nonhidden"
-	TL_ROW_VIEWABLE  TL_ROW_STATE = "-viewable"
+	TABLELIST_HALIGN_LEFT   TABLELIST_HALIGN = "left"
+	TABLELIST_HALIGN_RIGHT  TABLELIST_HALIGN = "right"
+	TABLELIST_HALIGN_CENTER TABLELIST_HALIGN = "center"
 )
+
+type TABLELIST_VALIGN string
+
+const (
+	TABLELIST_VALIGN_CENTER TABLELIST_VALIGN = "center"
+	TABLELIST_VALIGN_TOP    TABLELIST_VALIGN = "top"
+	TABLELIST_VALIGN_BOTTOM TABLELIST_VALIGN = "bottom"
+)
+
+type TABLELIST_RELIEF string
+const (
+	TABLELIST_RELIEF_RAISED TABLELIST_RELIEF = "raised"
+	TABLELIST_RELIEF_SUNKEN TABLELIST_RELIEF = "sunken"
+	TABLELIST_RELIEF_FLAT   TABLELIST_RELIEF = "flat"
+	TABLELIST_RELIEF_RIDGE  TABLELIST_RELIEF = "ridge"
+	TABLELIST_RELIEF_SOLID  TABLELIST_RELIEF = "solid"
+	TABLELIST_RELIEF_GROOVE TABLELIST_RELIEF = "groove"
+)
+
+type TABLELIST_SORT_MODE string
+
+const (
+	TABLELIST_SORT_MODE_ASCII         TABLELIST_SORT_MODE = "ascii"
+	TABLELIST_SORT_MODE_ASCII_NO_CASE TABLELIST_SORT_MODE = "asciinocase"
+	TABLELIST_SORT_MODE_DICTIONARY    TABLELIST_SORT_MODE = "dictionary"
+	TABLELIST_SORT_MODE_INTEGER       TABLELIST_SORT_MODE = "integer"
+	TABLELIST_SORT_MODE_REAL          TABLELIST_SORT_MODE = "real"
+	//TABLELIST_SORT_MODE_COMMAND     TABLELIST_SORT_MODE = "command"
+)
+
+// https://www.nemethi.de/tablelist/tablelistWidget.html#col_options
+type TablelistColumn struct {
+	Align               TABLELIST_HALIGN
+	Background          string
+	ChangeSnipSide      bool
+	ChangeTitleSnipSide bool
+	Editable            bool
+	EditWindow          string
+	Font                string
+	Foreground          string
+	//FormatCommand       string
+	Hide             bool
+	LabelAlign       TABLELIST_HALIGN
+	LabelBackground  string
+	LabelBorderWidth string // int? float?
+	//LabelCommand        string
+	//LabelCommand2       string
+	LabelFont       string
+	LabelForeground string
+	LabelHeight     int
+	LabelPadY       int
+	LabelRelief     TABLELIST_RELIEF
+	// selectfiltercommand
+	// LabelImage string
+	LabelVAlign      TABLELIST_VALIGN
+	LabelWindow      string
+	MaxWidth         int
+	Name             string
+	Resizable        bool
+	SelectBackground string
+	SelectForeground string
+	ShowArrow        bool
+	ShowLineNumbers  bool
+	// sortcommand
+	SortMode         TABLELIST_SORT_MODE
+	Stretchable      bool
+	StretchWindow    bool
+	StripeBackground string
+	StripeForeground string
+	// text
+	Title  string
+	VAlign TABLELIST_VALIGN
+	Width  int
+	// windowdestroy
+	// windowupdate
+	Wrap bool
+}
+
+func NewTablelistColumn() *TablelistColumn {
+	return &TablelistColumn{
+		Align:       TABLELIST_HALIGN_LEFT,
+		EditWindow:  "entry",
+		LabelAlign:  TABLELIST_HALIGN_LEFT,
+		LabelRelief: TABLELIST_RELIEF_RAISED, // todo: better default?
+		LabelVAlign: TABLELIST_VALIGN_CENTER,
+		MaxWidth:    0, // auto size. positive ints are measured in chars (???) and negative ints are pixels
+		Resizable:   true,
+		ShowArrow:   true,
+		SortMode:    TABLELIST_SORT_MODE_ASCII,
+		VAlign:      TABLELIST_VALIGN_CENTER,
+		Width:       0, // auto size. positive ints are measured in chars (???) and negative ints are pixels
+	}
+}
 
 type Tablelist struct {
 	BaseWidget
@@ -85,6 +146,14 @@ func int_list_to_string_list(int_list []int) []string {
 		int_str_list = append(int_str_list, strconv.Itoa(idx_str))
 	}
 	return int_str_list
+}
+
+func column_triple_string(column_list ...*TablelistColumn) string {
+	csl := []string{}
+	for _, column := range column_list {
+		csl = append(csl, fmt.Sprintf(`%v %v %s`, column.Width, Quote(column.Title), column.Align))
+	}
+	return strings.Join(csl, " ")
 }
 
 // ---
@@ -220,7 +289,145 @@ func TablelistAttrTreeSelectMode(mode TreeSelectMode) *WidgetAttr {
 	return &WidgetAttr{"selectmode", mode}
 }
 
-// ---
+// --- WIDGET-SPECIFIC OPTIONS
+
+/*
+   -acceptchildcommand command
+   -acceptdropcommand command
+   -activestyle frame|none|underline
+   -arrowcolor color
+   -arrowdisabledcolor color
+   -arrowstyle flat7x4|flat7x7|flat8x4|flat8x5|flat9x5|flat10x5|
+               flat11x6|flat12x6|flat13x7|flat14x7|flat15x8|flat16x8|
+               flatAngle7x4|flatAngle7x5|flatAngle9x5|flatAngle9x6|
+               flatAngle10x6|flatAngle11x6|flatAngle13x7|flatAngle15x8|
+               photo0x0|photo7x4|photo7x7|photo9x5|photo11x6|
+               photo13x7|photo15x8|sunken8x7|sunken10x9|sunken12x11
+   -autofinishediting boolean
+   -autoscan boolean
+   -collapsecommand command
+   -colorizecommand command
+   -columns {width title ?left|right|center? width title ?left|right|center? ...}
+   -columntitles {title title ...}
+   -customdragsource boolean
+   -displayondemand boolean
+   -editendcommand command
+   -editendonfocusout boolean
+   -editendonmodclick boolean
+   -editselectedonly boolean
+   -editstartcommand command
+   -expandcommand command
+   -forceeditendcommand boolean
+   -fullseparators boolean
+   -height units
+   -incrarrowtype up|down
+   -instanttoggle boolean
+   -itembackground color  or  -itembg color
+   -labelactivebackground color
+   -labelactiveforeground color
+   -labelbackground color  or  -labelbg color
+   -labelborderwidth screenDistance  or  -labelbd screenDistance
+   (!) -labelcommand command
+   (!) -labelcommand2 command
+   -labeldisabledforeground color
+   -labelfont font
+   -labelforeground color  or  -labelfg color
+   -labelheight lines
+   -labelpady screenDistance
+   -labelrelief raised|sunken|flat|ridge|solid|groove
+   -listvariable variable
+   -movablecolumns boolean
+   -movablerows boolean
+   -movecolumncursor cursor
+   -movecursor cursor
+   -populatecommand command
+   -protecttitlecolumns boolean
+   -resizablecolumns boolean
+   -resizecursor cursor
+   -selectfiltercommand command
+   (!)-selectmode single|browse|multiple|extended
+   -selecttype row|cell
+   -setfocus boolean
+   -showarrow boolean
+   -showbusycursor boolean
+   -showeditcursor boolean
+   -showhorizseparator boolean
+   -showlabels boolean
+   -showseparators boolean
+   -snipstring string
+   -sortcommand command
+   -spacing screenDistance
+   -state normal|disabled
+   -stretch all|columnIndexList
+   -stripebackground color  or  -stripebg color
+   -stripeforeground color  or  -stripefg color
+   -stripeheight lines
+   (!) -takefocus 0|1|""|command
+   -targetcolor color
+   -tight boolean
+   -titlecolumns number
+   -tooltipaddcommand command
+   -tooltipdelcommand command
+   -treecolumn columnIndex
+   -treestyle adwaita|ambiance|aqua|aqua11|arc|baghira|bicolor|bicolor100|
+              bicolor125|bicolor150|bicolor175|bicolor200|blueMenta|classic|
+              classic100|classic125|classic150|classic175|classic200|dust|dustSand|
+              gtk|klearlooks|mate|menta|mint|mint2|newWave|oxygen1|oxygen2|phase|
+              plain|plain100|plain125|plain150|plain175|plain200|plastik|plastique|
+              radiance|ubuntu|ubuntu2|ubuntu3|ubuntuMate|vistaAero|vistaClassic|
+              white|white100|white125|white150|white175|white200|win7Aero|
+              win7Classic|win10|winnative|winxpBlue|winxpOlive|winxpSilver|yuyo
+   -width characters
+   -xmousewheelwindow window
+   -ymousewheelwindow window
+*/
+
+// "Specifies a Tcl command to be invoked when mouse button 1 is pressed over one of the header labels and later released over the same label."
+func (w *Tablelist) LabelCommand(command string) error {
+	return eval(fmt.Sprintf("%v configure -labelcommand %s", w.id, command))
+}
+
+// convenience
+// "this command sorts the items based on the column whose index was passed to it as second argument."
+func (w *Tablelist) LabelCommandSortByColumn() error {
+	return w.LabelCommand("tablelist::sortByColumn")
+}
+
+// "Specifies a Tcl command to be invoked when mouse button 1 is pressed together with the Shift key over one of the header labels and later released over the same label."
+func (w *Tablelist) LabelCommand2(command string) error {
+	return eval(fmt.Sprintf("%v configure -labelcommand2 %s", w.id, command))
+}
+
+// convenience.
+// "this command adds the column index passed to it as second argument to the list of sort columns and sorts the items based on the columns indicated by the modified list"
+func (w *Tablelist) LabelCommand2AddToSortColumns() error {
+	return w.LabelCommand2("tablelist::addToSortColumns")
+}
+
+func (w *Tablelist) SelectMode() TABLELIST_SELECT_MODE {
+	mode, _ := evalAsString(fmt.Sprintf("%v cget -selectmode", w.id))
+	mode_key := TABLELIST_SELECT_MODE(mode)
+	_, present := TABLELIST_SELECT_MODE_SET[mode_key]
+	if !present {
+		dumpError(fmt.Errorf("unknown select mode returned: %s", mode))
+	}
+	return mode_key
+}
+
+func (w *Tablelist) SetSelectMode(mode TABLELIST_SELECT_MODE) error {
+	return eval(fmt.Sprintf("%v configure -selectmode {%v}", w.id, mode))
+}
+
+func (w *Tablelist) TakeFocus() bool {
+	r, _ := evalAsBool(fmt.Sprintf("%v cget -takefocus", w.id))
+	return r
+}
+
+func (w *Tablelist) SetTakeFocus(takefocus string) error {
+	return eval(fmt.Sprintf("%v configure -takefocus {%v}", w.id, takefocus))
+}
+
+// --- WIDGET COMMAND
 
 /*
 
@@ -254,7 +461,7 @@ func TablelistAttrTreeSelectMode(mode TreeSelectMode) *WidgetAttr {
    pathName collapseall ?-fully|-partly?
    pathName columnattrib columnIndex ?name? ?value name value ...?
    pathName columncget columnIndex option
-   pathName columnconfigure columnIndex ?option? ?value option value ...?
+   (!) pathName columnconfigure columnIndex ?option? ?value option value ...?
    (!) pathName columncount
    pathName columnindex columnIndex
    pathName columnwidth columnIndex ?-requested|-stretched|-total?
@@ -409,53 +616,58 @@ func TablelistAttrTreeSelectMode(mode TreeSelectMode) *WidgetAttr {
 
 */
 
-// "Specifies a Tcl command to be invoked when mouse button 1 is pressed over one of the header labels and later released over the same label."
-func (w *Tablelist) SetLabelCommand(cmd string) {
-	eval(fmt.Sprintf("%v configure -labelcommand %s", w.id, cmd))
+func (w *Tablelist) ColumnCount() int {
+	num, _ := evalAsInt(fmt.Sprintf("%v columncount", w.id))
+	return num
 }
 
-// "this command sorts the items based on the column whose index was passed to it as second argument."
-func (w *Tablelist) SetLabelCommandSortByColumn() {
-	w.SetLabelCommand("tablelist::sortByColumn")
+func (w *Tablelist) ColumnConfigure(column_index string, attribute_list ...WidgetAttr) error {
+	option_list := []string{}
+	for _, attr := range attribute_list {
+		option_list = append(option_list, fmt.Sprintf("-%v %v", attr.Key, attr.Value))
+	}
+	return eval(fmt.Sprintf("%v columnconfigure %v %v", w.id, column_index, strings.Join(option_list, " ")))
 }
 
-// "Specifies a Tcl command to be invoked when mouse button 1 is pressed together with the Shift key over one of the header labels and later released over the same label."
-func (w *Tablelist) SetLabelCommand2(cmd string) {
-	eval(fmt.Sprintf("%v configure -labelcommand2 %s", w.id, cmd))
+// similar to `ColumnConfigure` but introspects the fields and values on the given `column`,
+// with special handling for certain fields and values,
+// before issuing a `columnconfigure`.
+func (w *Tablelist) ColumnConfigureEx(column_index string, column *TablelistColumn) error {
+	option_list := []string{}
+	column_as_value := reflect.ValueOf(*column)
+	column_type := column_as_value.Type()
+	for i := 0; i < column_as_value.NumField(); i++ {
+		field := column_type.Field(i)
+		field_value := column_as_value.Field(i).Interface()
+		option := strings.ToLower(field.Name)
+
+		if option == "labelheight" {
+			// I'm getting: "bad option \"-labelheight\": must be -align, -background, -bg ... " ??
+			continue
+		}
+
+		switch v := field_value.(type) {
+		case string:
+			if v == "" {
+				// skip empty strings
+				continue
+			}
+			if option == "title" {
+				field_value = Quote(v)
+			}
+		}
+
+		option_list = append(option_list, fmt.Sprintf("-%v %v", option, field_value))
+	}
+	return eval(fmt.Sprintf("%v columnconfigure %v %v", w.id, column_index, strings.Join(option_list, " ")))
 }
 
-// "this command adds the column index passed to it as second argument to the list of sort columns and sorts the items based on the columns indicated by the modified list"
-func (w *Tablelist) SetLabelCommand2AddToSortColumns() {
-	w.SetLabelCommand2("tablelist::addToSortColumns")
+func (w *Tablelist) DeleteColumns(first_column, last_column string) error {
+	return eval(fmt.Sprintf("%v deletecolumns %v %v", w.id, first_column, last_column))
 }
 
-func (w *Tablelist) TakeFocus() bool {
-	r, _ := evalAsBool(fmt.Sprintf("%v cget -takefocus", w.id))
-	return r
-}
-
-func (w *Tablelist) SetTakeFocus(takefocus bool) error {
-	return eval(fmt.Sprintf("%v configure -takefocus {%v}", w.id, boolToInt(takefocus)))
-}
-
-func (w *Tablelist) SetSelectMode(mode TablelistSelectMode) error {
-	return eval(fmt.Sprintf("%v configure -selectmode {%v}", w.id, mode))
-}
-
-func (w *Tablelist) SelectMode() string { //TablelistSelectMode { // todo
-	r, _ := evalAsString(fmt.Sprintf("%v cget -selectmode", w.id))
-	//return parserTreeSebectModeResult(r, err)
-	return r
-}
-
-// ---
-
-func (w *Tablelist) DeleteColumns(first_column, last_column string) {
-	eval(fmt.Sprintf("%v deletecolumns %v %v", w.id, first_column, last_column))
-}
-
-func (w *Tablelist) DeleteColumns2(column_index_list ...string) {
-	eval(fmt.Sprintf("%v deletecolumns %v", w.id, strings.Join(column_index_list, " ")))
+func (w *Tablelist) DeleteColumns2(column_index_list ...string) error {
+	return eval(fmt.Sprintf("%v deletecolumns %v", w.id, strings.Join(column_index_list, " ")))
 }
 
 // convenience.
@@ -463,27 +675,21 @@ func (w *Tablelist) DeleteAllColumns() error {
 	return eval(fmt.Sprintf("%v deletecolumns 0 end", w.id))
 }
 
-func ColumnTripleString(column_list ...TablelistColumn) string {
-	csl := []string{}
-	for _, column := range column_list {
-		csl = append(csl, fmt.Sprintf(`%v %v %s`, column.Width, Quote(column.Title), column.Align))
-	}
-	return strings.Join(csl, " ")
-}
-
 // "Inserts the columns specified by the list columnList just before the column given by columnIndex"
-func (w *Tablelist) InsertColumnList(column_index string, column_list []TablelistColumn) {
-	eval(fmt.Sprintf("%v insertcolumnlist %v {%v}", w.id, column_index, ColumnTripleString(column_list...)))
+func (w *Tablelist) InsertColumnList(column_index string, column_list []*TablelistColumn) error {
+	return eval(fmt.Sprintf("%v insertcolumnlist %v {%v}", w.id, column_index, column_triple_string(column_list...)))
 }
 
-func (w *Tablelist) InsertColumns(column_index string, column_list []TablelistColumn) {
-	eval(fmt.Sprintf("%v insertcolumns %v %v", w.id, column_index, ColumnTripleString(column_list...)))
+func (w *Tablelist) InsertColumns(column_index string, column_list []*TablelistColumn) error {
+	return eval(fmt.Sprintf("%v insertcolumns %v %v", w.id, column_index, column_triple_string(column_list...)))
 }
 
-func (w *Tablelist) ColumnCount() int {
-	num, _ := evalAsInt(fmt.Sprintf("%v columncount", w.id))
-	return num
-
+// convenience. inserts the columns and then configures them.
+func (w *Tablelist) InsertColumnsEx(column_index int, column_list []*TablelistColumn) {
+	w.InsertColumns(strconv.Itoa(column_index), column_list)
+	for offset, col := range column_list {
+		w.ColumnConfigureEx(strconv.Itoa(column_index+offset), col)
+	}
 }
 
 func (w *Tablelist) IsValidItem(item *TablelistItem) bool {
@@ -585,12 +791,12 @@ func (w *Tablelist) InsertChildListEx(pidx interface{}, cidx int, item_list [][]
 	return tablelist_item_list
 }
 
-func (w *Tablelist) Delete(idx1, idx2 int) {
-	eval(fmt.Sprintf("%v delete %v %v", w.id, idx1, idx2))
+func (w *Tablelist) Delete(idx1, idx2 int) error {
+	return eval(fmt.Sprintf("%v delete %v %v", w.id, idx1, idx2))
 }
 
-func (w *Tablelist) Delete2(idx ...int) {
-	eval(fmt.Sprintf("%v delete %v", w.id, strings.Join(int_list_to_string_list(idx), " ")))
+func (w *Tablelist) Delete2(idx ...int) error {
+	return eval(fmt.Sprintf("%v delete %v", w.id, strings.Join(int_list_to_string_list(idx), " ")))
 }
 
 func (w *Tablelist) DeleteAllItems() error {
@@ -601,129 +807,8 @@ func (w *Tablelist) MovableColumns(b bool) error {
 	return eval(fmt.Sprintf("%v configure -movablecolumns %v", w.id, b))
 }
 
-func (w *Tablelist) MoveItem(item *TablelistItem, parent *TablelistItem, index int) error {
-	if !w.IsValidItem(item) || item.IsRoot() {
-		return ErrInvalid
-	}
-	var pid string
-	if parent != nil {
-		if !w.IsValidItem(parent) {
-			return ErrInvalid
-		}
-		pid = parent.id
-	}
-	return eval(fmt.Sprintf("%v move {%v} {%v} %v", w.id, item.id, pid, index))
-}
-
 func (w *Tablelist) RefreshSorting(parentNodeIndex int) error {
 	return eval(fmt.Sprintf("%v refreshsorting %v", w.id, parentNodeIndex))
-}
-
-func (w *Tablelist) ScrollTo(item *TablelistItem) error {
-	if !w.IsValidItem(item) || item.IsRoot() {
-		return ErrInvalid
-	}
-	/*
-		children := w.RootItem().Children()
-		if len(children) == 0 {
-			return ErrInvalid
-		}
-		//fix see bug: first scroll to root
-		eval(fmt.Sprintf("%v see %v", w.id, children[0].id))
-		return eval(fmt.Sprintf("%v see %v", w.id, item.id))
-	*/
-	panic("not implemented")
-}
-
-func (w *Tablelist) CurrentIndex() *TablelistItem {
-	lst := w.SelectionList()
-	if len(lst) == 0 {
-		return nil
-	}
-	return lst[0]
-}
-
-func (w *Tablelist) SetCurrentIndex(item *TablelistItem) error {
-	return w.SetSelections(item)
-}
-
-func (w *Tablelist) SelectionList() (lst []*TablelistItem) {
-	ids, err := evalAsStringList(fmt.Sprintf("%v selection", w.id))
-	if err != nil {
-		return
-	}
-	for _, id := range ids {
-		lst = append(lst, NewTablelistItem("", id, w))
-	}
-	return lst
-}
-
-func (w *Tablelist) SetSelections(items ...*TablelistItem) error {
-	return w.SetSelectionList(items)
-}
-
-func (w *Tablelist) RemoveSelections(items ...*TablelistItem) error {
-	return w.RemoveSelectionList(items)
-}
-
-func (w *Tablelist) AddSelections(items ...*TablelistItem) error {
-	return w.AddSelectionList(items)
-}
-
-func (w *Tablelist) ToggleSelections(items ...*TablelistItem) error {
-	return w.ToggleSelectionList(items)
-}
-
-func (w *Tablelist) SetSelectionList(items []*TablelistItem) error {
-	var ids []string
-	for _, item := range items {
-		if w.IsValidItem(item) && !item.IsRoot() {
-			ids = append(ids, item.id)
-		}
-	}
-	if len(ids) == 0 {
-		return ErrInvalid
-	}
-	return eval(fmt.Sprintf("%v selection set {%v}", w.id, strings.Join(ids, " ")))
-}
-
-func (w *Tablelist) RemoveSelectionList(items []*TablelistItem) error {
-	var ids []string
-	for _, item := range items {
-		if w.IsValidItem(item) && !item.IsRoot() {
-			ids = append(ids, item.id)
-		}
-	}
-	if len(ids) == 0 {
-		return ErrInvalid
-	}
-	return eval(fmt.Sprintf("%v selection remove {%v}", w.id, strings.Join(ids, " ")))
-}
-
-func (w *Tablelist) AddSelectionList(items []*TablelistItem) error {
-	var ids []string
-	for _, item := range items {
-		if w.IsValidItem(item) && !item.IsRoot() {
-			ids = append(ids, item.id)
-		}
-	}
-	if len(ids) == 0 {
-		return ErrInvalid
-	}
-	return eval(fmt.Sprintf("%v selection add {%v}", w.id, strings.Join(ids, " ")))
-}
-
-func (w *Tablelist) ToggleSelectionList(items []*TablelistItem) error {
-	var ids []string
-	for _, item := range items {
-		if w.IsValidItem(item) && !item.IsRoot() {
-			ids = append(ids, item.id)
-		}
-	}
-	if len(ids) == 0 {
-		return ErrInvalid
-	}
-	return eval(fmt.Sprintf("%v selection toggle {%v}", w.id, strings.Join(ids, " ")))
 }
 
 // "... expands all top-level rows of a tablelist used as a tree widget, i.e., makes all their children visible."
@@ -759,7 +844,7 @@ func (w *Tablelist) ExpandedKeys() []int {
 	return key_list
 }
 
-func (w *Tablelist) GetKeys(idx1, idx2 int, option TL_ROW_STATE) []string {
+func (w *Tablelist) GetKeys(idx1, idx2 int, option TABLELIST_ROW_STATE) []string {
 	key_list, _ := evalAsStringList(fmt.Sprintf("%v getkeys %v %v %v", w.id, idx1, idx2, option))
 	return key_list
 }
@@ -785,7 +870,7 @@ func (w *Tablelist) OnSelectionChanged(fn func()) error {
 }
 
 // "... returns a list whose elements are all of the tablelist items (i.e., row contents) between firstIndex and lastIndex, inclusive."
-func (w *Tablelist) Get(idx1, idx2 int, option TL_ROW_STATE) []string {
+func (w *Tablelist) Get(idx1, idx2 int, option TABLELIST_ROW_STATE) []string {
 	rows, _ := evalAsStringList(fmt.Sprintf("%v get %v %v %v", w.id, idx1, idx2, option))
 	return rows
 }
@@ -798,7 +883,7 @@ func (w *Tablelist) Get2(idx ...int) []string {
 
 // "Each item of a tablelist widget has a unique sequence number that remains unchanged until the item is deleted,
 // thus acting as a key that uniquely identifies the item even if the latter's position (i.e., numerical row index) changes."
-func (w *Tablelist) GetFullKeys(idx1, idx2 int, option TL_ROW_STATE) []string {
+func (w *Tablelist) GetFullKeys(idx1, idx2 int, option TABLELIST_ROW_STATE) []string {
 	key_list, _ := evalAsStringList(fmt.Sprintf("%v getfullkeys %v %v %v", w.id, idx1, idx2, option))
 	return key_list
 }
@@ -827,39 +912,33 @@ func (w *Tablelist) GetTablelistItemByIdx(idx int) *TablelistItem {
 	return NewTablelistItem("", full_key[0], w)
 }
 
-/*
-func (w *Tablelist) GetTablelistItemByKey(key string) TablelistItem {
-	return TablelistItem{}
-        }
-*/
-
-func (w *Tablelist) OnItemExpanded(fn func(*TablelistItem)) {
+func (w *Tablelist) OnItemExpanded(fn func(*TablelistItem)) error {
 	event_fn := func(e *Event) {
 		tli_idx, err := strconv.Atoi(e.UserData)
 		dumpError(err)
 		fn(w.GetTablelistItemByIdx(tli_idx))
 	}
-	w.BindEvent("<<TablelistRowExpand>>", event_fn)
+	return w.BindEvent("<<TablelistRowExpand>>", event_fn)
 }
 
-func (w *Tablelist) OnItemCollapsed(fn func(*Event)) {
-	w.BindEvent("<<TablelistRowCollapse>>", fn)
+func (w *Tablelist) OnItemCollapsed(fn func(*Event)) error {
+	return w.BindEvent("<<TablelistRowCollapse>>", fn)
 }
 
 // 'populate', singular.
-func (w *Tablelist) OnItemPopulate(fn func(*Event)) {
-	w.BindEvent("<<TablelistRowPopulate>>", fn)
+func (w *Tablelist) OnItemPopulate(fn func(*Event)) error {
+	return w.BindEvent("<<TablelistRowPopulate>>", fn)
 }
 
 // "Returns a list containing the numerical indices of all of the items in the tablelist that contain at least one selected element."
-func (w *Tablelist) CurSelection(state TL_ROW_STATE) []int {
+func (w *Tablelist) CurSelection(state TABLELIST_ROW_STATE) []int {
 	idx_list, _ := evalAsIntList(fmt.Sprintf("%v curselection %v", w.id, state))
 	return idx_list
 }
 
 // "Returns a list containing the numerical indices of all of the items in the tablelist that contain at least one selected element."
 func (w *Tablelist) CurSelection2() []int {
-	return w.CurSelection(TL_ROW_ALL)
+	return w.CurSelection(TABLELIST_ROW_STATE_ALL)
 }
 
 func (w *Tablelist) ItemAt(x int, y int) *TablelistItem {
@@ -872,11 +951,8 @@ func (w *Tablelist) ItemAt(x int, y int) *TablelistItem {
 	return w.GetTablelistItemByIdx(idx_int)
 }
 
-func (w *Tablelist) OnDoubleClickedItem(fn func(item *TablelistItem)) {
-	if fn == nil {
-		return
-	}
-	w.BindEvent("<Double-ButtonPress-1>", func(e *Event) {
+func (w *Tablelist) OnDoubleClickedItem(fn func(item *TablelistItem)) error {
+	return w.BindEvent("<Double-ButtonPress-1>", func(e *Event) {
 		item := w.ItemAt(e.PosX, e.PosY)
 		fn(item)
 	})
