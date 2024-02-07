@@ -921,8 +921,13 @@ func (w *Tablelist) OnItemExpanded(fn func(*TablelistItem)) error {
 	return w.BindEvent("<<TablelistRowExpand>>", event_fn)
 }
 
-func (w *Tablelist) OnItemCollapsed(fn func(*Event)) error {
-	return w.BindEvent("<<TablelistRowCollapse>>", fn)
+func (w *Tablelist) OnItemCollapsed(fn func(*TablelistItem)) error {
+	event_fn := func(e *Event) {
+		tli_idx, err := strconv.Atoi(e.UserData)
+		dumpError(err)
+		fn(w.GetTablelistItemByIdx(tli_idx))
+	}
+	return w.BindEvent("<<TablelistRowCollapse>>", event_fn)
 }
 
 // 'populate', singular.
