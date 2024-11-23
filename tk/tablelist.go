@@ -48,6 +48,7 @@ const (
 )
 
 type TABLELIST_RELIEF string
+
 const (
 	TABLELIST_RELIEF_RAISED TABLELIST_RELIEF = "raised"
 	TABLELIST_RELIEF_SUNKEN TABLELIST_RELIEF = "sunken"
@@ -530,7 +531,7 @@ func (w *Tablelist) SetTakeFocus(takefocus string) error {
    pathName headertag
    pathName hidetargetmark
    pathName imagelabelpath cellIndex
-   pathName index index
+   (!) pathName index index
    pathName insert index ?item item ...?
    (!) pathName insertchildlist parentNodeIndex childIndex itemList
    (!) pathName insertchild(ren) parentNodeIndex childIndex ?item item ...?
@@ -616,6 +617,15 @@ func (w *Tablelist) SetTakeFocus(takefocus string) error {
 
 */
 
+func (w *Tablelist) ColumnNames(column_count int) []string {
+	col_names := []string{}
+	for idx := 0; idx < column_count; idx++ {
+		name, _ := evalAsString(fmt.Sprintf("%v columncget %v -title", w.id, idx))
+		col_names = append(col_names, name)
+	}
+	return col_names
+}
+
 func (w *Tablelist) ColumnCount() int {
 	num, _ := evalAsInt(fmt.Sprintf("%v columncount", w.id))
 	return num
@@ -673,6 +683,11 @@ func (w *Tablelist) DeleteColumns2(column_index_list ...string) error {
 // convenience.
 func (w *Tablelist) DeleteAllColumns() error {
 	return eval(fmt.Sprintf("%v deletecolumns 0 end", w.id))
+}
+
+// "Returns the integer row index value that corresponds to index."
+func (w *Tablelist) Index(index string) (int, error) {
+	return evalAsInt(fmt.Sprintf("%v index %v", w.id, index))
 }
 
 // "Inserts the columns specified by the list columnList just before the column given by columnIndex"
@@ -759,6 +774,10 @@ func (w *Tablelist) InsertChildrenEx(parent_node_index interface{}, child_index 
 func (w *Tablelist) InsertChildList(parent_node_index interface{}, child_index int, item_list [][]string) []string {
 	var pidx_str string
 
+	if len(item_list) == 0 {
+		panic("item list is empty")
+	}
+
 	switch t := parent_node_index.(type) {
 	case string:
 		// todo: ensure valid string value, i.e. 'root', 'end', etc.
@@ -775,9 +794,16 @@ func (w *Tablelist) InsertChildList(parent_node_index interface{}, child_index i
 		for _, val := range item {
 			row_cell_list = append(row_cell_list, fmt.Sprintf("%v", Quote(val)))
 		}
+		if len(row_cell_list) == 0 {
+			panic("row is empty!")
+		}
+
 		child_list = append(child_list, fmt.Sprintf(`{%v}`, strings.Join(row_cell_list, " ")))
 	}
-	key_list, _ := evalAsStringList(fmt.Sprintf("%v insertchildlist %v %v {%v}", w.id, pidx_str, child_index, strings.Join(child_list, " ")))
+	key_list, err := evalAsStringList(fmt.Sprintf("%v insertchildlist %v %v {%v}", w.id, pidx_str, child_index, strings.Join(child_list, " ")))
+	if err != nil {
+		panic(fmt.Sprintf("error inserting rows: %v", err))
+	}
 	return key_list
 }
 
@@ -860,6 +886,22 @@ func (w *Tablelist) RowCGet(idx int, option string) string {
 	return v
 }
 
+func (w *Tablelist) RowConfigure(idx string, options map[string]string) error {
+	keyvals := []string{}
+	for key, val := range options {
+		keyvals = append(keyvals, fmt.Sprintf("-%v {%v}", key, val))
+	}
+	return eval(fmt.Sprintf("%v rowconfigure %v %v", w.id, idx, strings.Join(keyvals, " ")))
+}
+
+func (w *Tablelist) RowConfigureText(idx string, text []string) error {
+	keyvals := []string{}
+	for _, val := range text {
+		keyvals = append(keyvals, fmt.Sprintf("{%v}", val))
+	}
+	return eval(fmt.Sprintf("%v rowconfigure %v -text {%v}", w.id, idx, strings.Join(keyvals, " ")))
+}
+
 func (w *Tablelist) OnSelectionChanged(fn func()) error {
 	if fn == nil {
 		return ErrInvalid
@@ -869,6 +911,7 @@ func (w *Tablelist) OnSelectionChanged(fn func()) error {
 	})
 }
 
+/*
 // "... returns a list whose elements are all of the tablelist items (i.e., row contents) between firstIndex and lastIndex, inclusive."
 func (w *Tablelist) Get(idx1, idx2 int, option TABLELIST_ROW_STATE) []string {
 	rows, _ := evalAsStringList(fmt.Sprintf("%v get %v %v %v", w.id, idx1, idx2, option))
@@ -880,35 +923,30 @@ func (w *Tablelist) Get2(idx ...int) []string {
 	rows, _ := evalAsStringList(fmt.Sprintf("%v get %v", w.id, strings.Join(idx_str_list, " ")))
 	return rows
 }
+*/
+
+// "... returns a list whose elements are all of the tablelist items (i.e., row contents) between firstIndex and lastIndex, inclusive."
+func (w *Tablelist) Get(idx1, idx2 string) []string {
+	rows, _ := evalAsStringList(fmt.Sprintf("%v get %v %v %v", w.id, idx1, idx2, TABLELIST_ROW_STATE_ALL))
+	return rows
+}
 
 // "Each item of a tablelist widget has a unique sequence number that remains unchanged until the item is deleted,
 // thus acting as a key that uniquely identifies the item even if the latter's position (i.e., numerical row index) changes."
-func (w *Tablelist) GetFullKeys(idx1, idx2 int, option TABLELIST_ROW_STATE) []string {
-	key_list, _ := evalAsStringList(fmt.Sprintf("%v getfullkeys %v %v %v", w.id, idx1, idx2, option))
+func (w *Tablelist) GetFullKeys(idx1, idx2 string) []string {
+	key_list, _ := evalAsStringList(fmt.Sprintf("%v getfullkeys %v %v %v", w.id, idx1, idx2, TABLELIST_ROW_STATE_ALL))
 	return key_list
 }
 
 // "Each item of a tablelist widget has a unique sequence number that remains unchanged until the item is deleted,
 // thus acting as a key that uniquely identifies the item even if the latter's position (i.e., numerical row index) changes."
-func (w *Tablelist) GetFullKeys2(idx ...int) []string {
-	idx_str_list := int_list_to_string_list(idx)
-	key_list, _ := evalAsStringList(fmt.Sprintf("%v getfullkeys %v", w.id, strings.Join(idx_str_list, " ")))
+func (w *Tablelist) GetFullKeys2(idx string) []string {
+	key_list, _ := evalAsStringList(fmt.Sprintf("%v getfullkeys %v", w.id, idx))
 	return key_list
-}
-
-// convenience.
-// "Each item of a tablelist widget has a unique sequence number that remains unchanged until the item is deleted,
-// thus acting as a key that uniquely identifies the item even if the latter's position (i.e., numerical row index) changes."
-func (w *Tablelist) GetFullKey(idx int) (string, error) {
-	key_list := w.GetFullKeys2(idx)
-	if len(key_list) != 1 {
-		return "", fmt.Errorf("key for row at index not found: %v", idx)
-	}
-	return key_list[0], nil
 }
 
 func (w *Tablelist) GetTablelistItemByIdx(idx int) *TablelistItem {
-	full_key := w.GetFullKeys2(idx)
+	full_key := w.GetFullKeys2(strconv.Itoa(idx))
 	return NewTablelistItem("", full_key[0], w)
 }
 
