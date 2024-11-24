@@ -220,7 +220,7 @@ func (p *Interp) GetListObjResult() *ListObj {
 }
 
 func (p *Interp) Eval(script string) error {
-	println(script)
+	println("> " + script)
 	println("---")
 	cs := C.CString(script)
 	defer C.free(unsafe.Pointer(cs))

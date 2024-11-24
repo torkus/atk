@@ -95,9 +95,11 @@ func buildWidgetAttributeScript(meta *MetaClass, ttk bool, attributes []*WidgetA
 			list = append(list, checkPaddingScript(ttk, attr))
 			continue
 		}
-		if !meta.HasAttribute(attr.Key) {
-			continue
-		}
+		/*
+			if !meta.HasAttribute(attr.Key) {
+				continue
+			}
+		*/
 		if strs, ok := attr.Value.([]string); ok {
 			pname := "atk_tmp_" + attr.Key
 			setObjTextList(pname, strs)

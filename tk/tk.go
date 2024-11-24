@@ -136,6 +136,7 @@ func Quit() {
 }
 
 func eval(script string) error {
+	fmt.Println(script)
 	err := mainInterp.Eval(script)
 	if err != nil {
 		dumpError(fmt.Errorf("script: %q, error: %q", script, err))
