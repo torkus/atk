@@ -1,6 +1,7 @@
 package tk
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -201,8 +202,6 @@ proc tablelistPopulateCmd {tbl row} {
 	return w
 }
 
-// --- NewTablelistEx
-
 func (w *Tablelist) SetXViewArgs(args []string) error {
 	return eval(fmt.Sprintf("%v xview %v", w.id, strings.Join(args, " ")))
 }
@@ -274,12 +273,13 @@ func NewTablelistEx(parent Widget, attributes ...*WidgetAttr) *TablelistEx {
 
 // ---
 
-func TablelistAttrTakeFocus(takefocus bool) *WidgetAttr {
-	return &WidgetAttr{"takefocus", boolToInt(takefocus)}
-}
-
+/*
 func TablelistAttrHeight(row int) *WidgetAttr {
 	return &WidgetAttr{"height", row}
+}
+
+func TablelistAttrTakeFocus(takefocus bool) *WidgetAttr {
+	return &WidgetAttr{"takefocus", boolToInt(takefocus)}
 }
 
 func TablelistAttrPadding(padding Pad) *WidgetAttr {
@@ -289,8 +289,10 @@ func TablelistAttrPadding(padding Pad) *WidgetAttr {
 func TablelistAttrTreeSelectMode(mode TreeSelectMode) *WidgetAttr {
 	return &WidgetAttr{"selectmode", mode}
 }
+*/
 
-// --- WIDGET-SPECIFIC OPTIONS
+// WIDGET-SPECIFIC OPTIONS
+// - https://www.nemethi.de/tablelist/tablelistWidget.html#widget_options
 
 /*
    -acceptchildcommand command
@@ -419,13 +421,21 @@ func (w *Tablelist) SetSelectMode(mode TABLELIST_SELECT_MODE) error {
 	return eval(fmt.Sprintf("%v configure -selectmode {%v}", w.id, mode))
 }
 
+func (w *Tablelist) ShowArrow(b bool) error {
+	return eval(fmt.Sprintf("%v -showarrow %v", w.id, b))
+}
+
+func (w *Tablelist) SetTakeFocus(takefocus string) error {
+	return eval(fmt.Sprintf("%v configure -takefocus {%v}", w.id, takefocus))
+}
+
 func (w *Tablelist) TakeFocus() bool {
 	r, _ := evalAsBool(fmt.Sprintf("%v cget -takefocus", w.id))
 	return r
 }
 
-func (w *Tablelist) SetTakeFocus(takefocus string) error {
-	return eval(fmt.Sprintf("%v configure -takefocus {%v}", w.id, takefocus))
+func (w *Tablelist) TreeColumn(column_index int) error {
+	return eval(fmt.Sprintf("%v configure -treecolumn %v", w.id, column_index))
 }
 
 // --- WIDGET COMMAND
@@ -881,6 +891,8 @@ func (w *Tablelist) GetKeys2(idx ...int) []string {
 	return key_list
 }
 
+// -- WIDGET COMMAND
+
 func (w *Tablelist) RowCGet(idx int, option string) string {
 	v, _ := evalAsString(fmt.Sprintf("%v rowcget %v %v", w.id, idx, option))
 	return v
@@ -900,15 +912,6 @@ func (w *Tablelist) RowConfigureText(idx string, text []string) error {
 		keyvals = append(keyvals, fmt.Sprintf("{%v}", val))
 	}
 	return eval(fmt.Sprintf("%v rowconfigure %v -text {%v}", w.id, idx, strings.Join(keyvals, " ")))
-}
-
-func (w *Tablelist) OnSelectionChanged(fn func()) error {
-	if fn == nil {
-		return ErrInvalid
-	}
-	return w.BindEvent("<<TablelistSelect>>", func(e *Event) {
-		fn()
-	})
 }
 
 /*
@@ -959,6 +962,61 @@ func (w *Tablelist) OnItemExpanded(fn func(*TablelistItem)) error {
 	return w.BindEvent("<<TablelistRowExpand>>", event_fn)
 }
 
+// "Returns a list containing the numerical indices of all of the items in the tablelist that contain at least one selected element."
+func (w *Tablelist) CurSelection(state TABLELIST_ROW_STATE) []int {
+	idx_list, _ := evalAsIntList(fmt.Sprintf("%v curselection %v", w.id, state))
+	return idx_list
+}
+
+// "Returns a list containing the numerical indices of all of the items in the tablelist that contain at least one selected element."
+func (w *Tablelist) CurSelection2() []int {
+	return w.CurSelection(TABLELIST_ROW_STATE_ALL)
+}
+
+func (w *Tablelist) MoveColumn(source_column_idx int, target_column_idx int) error {
+	_, err := evalAsString(fmt.Sprintf("%v movecolumn %v %v", w.id, source_column_idx, target_column_idx))
+	return err
+}
+
+func (w *Tablelist) NearestCell(x int, y int) *TablelistItem {
+	idx, _ := evalAsString(fmt.Sprintf("%v nearestcell %v %v", w.id, x, y))
+	if idx == "" {
+		return nil
+	}
+	idx_int, err := strconv.Atoi(idx)
+	dumpError(err)
+	return w.GetTablelistItemByIdx(idx_int)
+}
+
+func (w *Tablelist) ToggleColumnHide(first_column_idx int, last_column_idx int) error {
+	_, err := evalAsString(fmt.Sprintf("%v togglecolumnhide %v %v", w.id, first_column_idx, last_column_idx))
+	return err
+}
+
+func (w *Tablelist) ToggleColumnHide2(column_index_list []int) error {
+	if len(column_index_list) == 0 {
+		return errors.New("column_index_list is empty")
+	}
+	column_idx_list := []string{}
+	for _, col := range column_index_list {
+		column_idx_list = append(column_idx_list, strconv.Itoa(col))
+	}
+	column_idx_list_str := strings.Join(column_idx_list, " ")
+	_, err := evalAsString(fmt.Sprintf("%v togglecolumnhide {%v}", w.id, column_idx_list_str))
+	return err
+}
+
+// --- event bindings
+
+func (w *Tablelist) OnSelectionChanged(fn func()) error {
+	if fn == nil {
+		return ErrInvalid
+	}
+	return w.BindEvent("<<TablelistSelect>>", func(e *Event) {
+		fn()
+	})
+}
+
 func (w *Tablelist) OnItemCollapsed(fn func(*TablelistItem)) error {
 	event_fn := func(e *Event) {
 		tli_idx, err := strconv.Atoi(e.UserData)
@@ -973,30 +1031,9 @@ func (w *Tablelist) OnItemPopulate(fn func(*Event)) error {
 	return w.BindEvent("<<TablelistRowPopulate>>", fn)
 }
 
-// "Returns a list containing the numerical indices of all of the items in the tablelist that contain at least one selected element."
-func (w *Tablelist) CurSelection(state TABLELIST_ROW_STATE) []int {
-	idx_list, _ := evalAsIntList(fmt.Sprintf("%v curselection %v", w.id, state))
-	return idx_list
-}
-
-// "Returns a list containing the numerical indices of all of the items in the tablelist that contain at least one selected element."
-func (w *Tablelist) CurSelection2() []int {
-	return w.CurSelection(TABLELIST_ROW_STATE_ALL)
-}
-
-func (w *Tablelist) ItemAt(x int, y int) *TablelistItem {
-	idx, _ := evalAsString(fmt.Sprintf("%v nearestcell %v %v", w.id, x, y))
-	if idx == "" {
-		return nil
-	}
-	idx_int, err := strconv.Atoi(idx)
-	dumpError(err)
-	return w.GetTablelistItemByIdx(idx_int)
-}
-
 func (w *Tablelist) OnDoubleClickedItem(fn func(item *TablelistItem)) error {
 	return w.BindEvent("<Double-ButtonPress-1>", func(e *Event) {
-		item := w.ItemAt(e.PosX, e.PosY)
+		item := w.NearestCell(e.PosX, e.PosY)
 		fn(item)
 	})
 }
