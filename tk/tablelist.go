@@ -717,11 +717,14 @@ func (w *Tablelist) InsertColumnsEx(column_index int, column_list []*TablelistCo
 	}
 }
 
+/*
 func (w *Tablelist) IsValidItem(item *TablelistItem) bool {
 	return item != nil && item.tablelist != nil && item.tablelist.id == w.id
 }
+*/
 
 // "Inserts zero or more new items in the widget's internal list just before the item given by index"
+/*
 func (w *Tablelist) Insert(index int, item_list [][]string) []*TablelistItem {
 	item_strings := []string{}
 	for _, val_list := range item_list {
@@ -739,10 +742,13 @@ func (w *Tablelist) Insert(index int, item_list [][]string) []*TablelistItem {
 	}
 	return tablelist_item_list
 }
+*/
 
+/*
 func (w *Tablelist) InsertSingle(index int, item_list []string) []*TablelistItem {
 	return w.Insert(index, [][]string{item_list})
 }
+*/
 
 func (w *Tablelist) InsertChildren(parent_node_idx interface{}, child_index int, item_list [][]string) []string {
 	var parent_node_idx_str string
@@ -769,6 +775,7 @@ func (w *Tablelist) InsertChildren(parent_node_idx interface{}, child_index int,
 	return full_key_list
 }
 
+/*
 // convenience. same as `InsertChildren` but returns a list of TablelistItem pointers.
 func (w *Tablelist) InsertChildrenEx(parent_node_index interface{}, child_index int, item_list [][]string) ([]*TablelistItem, error) {
 	full_key_list := w.InsertChildren(parent_node_index, child_index, item_list)
@@ -780,6 +787,7 @@ func (w *Tablelist) InsertChildrenEx(parent_node_index interface{}, child_index 
 	return tablelist_item_list, nil
 
 }
+*/
 
 func (w *Tablelist) InsertChildList(parent_node_index interface{}, child_index int, item_list [][]string) []string {
 	var pidx_str string
@@ -810,13 +818,14 @@ func (w *Tablelist) InsertChildList(parent_node_index interface{}, child_index i
 
 		child_list = append(child_list, fmt.Sprintf(`{%v}`, strings.Join(row_cell_list, " ")))
 	}
-	key_list, err := evalAsStringList(fmt.Sprintf("%v insertchildlist %v %v {%v}", w.id, pidx_str, child_index, strings.Join(child_list, " ")))
+	key_list, err := evalAsStringList(fmt.Sprintf("%v insertchildlist {%v} {%v} {%v}", w.id, pidx_str, child_index, strings.Join(child_list, " ")))
 	if err != nil {
 		panic(fmt.Sprintf("error inserting rows: %v", err))
 	}
 	return key_list
 }
 
+/*
 func (w *Tablelist) InsertChildListEx(pidx interface{}, cidx int, item_list [][]string) []*TablelistItem {
 	key_list := w.InsertChildList(pidx, cidx, item_list)
 	tablelist_item_list := []*TablelistItem{}
@@ -826,6 +835,7 @@ func (w *Tablelist) InsertChildListEx(pidx interface{}, cidx int, item_list [][]
 	}
 	return tablelist_item_list
 }
+*/
 
 func (w *Tablelist) Delete(idx1, idx2 int) error {
 	return eval(fmt.Sprintf("%v delete %v %v", w.id, idx1, idx2))
@@ -943,21 +953,30 @@ func (w *Tablelist) GetFullKeys(idx1, idx2 string) []string {
 
 // "Each item of a tablelist widget has a unique sequence number that remains unchanged until the item is deleted,
 // thus acting as a key that uniquely identifies the item even if the latter's position (i.e., numerical row index) changes."
-func (w *Tablelist) GetFullKeys2(idx string) []string {
-	key_list, _ := evalAsStringList(fmt.Sprintf("%v getfullkeys %v", w.id, idx))
+func (w *Tablelist) GetFullKeys2(idx string) string {
+	key_list, _ := evalAsString(fmt.Sprintf("%v getfullkeys %v", w.id, idx))
 	return key_list
 }
 
-func (w *Tablelist) GetTablelistItemByIdx(idx int) *TablelistItem {
-	full_key := w.GetFullKeys2(strconv.Itoa(idx))
-	return NewTablelistItem("", full_key[0], w)
+// "Each item of a tablelist widget has a unique sequence number that remains unchanged until the item is deleted,
+// thus acting as a key that uniquely identifies the item even if the latter's position (i.e., numerical row index) changes."
+// UNTESTED
+func (w *Tablelist) GetFullKeys3(idx ...string) []string {
+	key_list, _ := evalAsStringList(fmt.Sprintf("%v getfullkeys {%v}", w.id, strings.Join(idx, " ")))
+	return key_list
 }
 
-func (w *Tablelist) OnItemExpanded(fn func(*TablelistItem)) error {
+/*
+func (w *Tablelist) GetTablelistItemByIdx(idx int) *TablelistItem {
+	full_key := w.GetFullKeys2(strconv.Itoa(idx))
+	return NewTablelistItem("", full_key, w)
+}
+*/
+
+func (w *Tablelist) OnItemExpanded(fn func(fullkey string)) error {
 	event_fn := func(e *Event) {
-		tli_idx, err := strconv.Atoi(e.UserData)
-		dumpError(err)
-		fn(w.GetTablelistItemByIdx(tli_idx))
+		full_key := w.GetFullKeys2(e.UserData)
+		fn(full_key)
 	}
 	return w.BindEvent("<<TablelistRowExpand>>", event_fn)
 }
@@ -978,14 +997,12 @@ func (w *Tablelist) MoveColumn(source_column_idx int, target_column_idx int) err
 	return err
 }
 
-func (w *Tablelist) NearestCell(x int, y int) *TablelistItem {
+func (w *Tablelist) NearestCell(x int, y int) string {
 	idx, _ := evalAsString(fmt.Sprintf("%v nearestcell %v %v", w.id, x, y))
 	if idx == "" {
-		return nil
+		return ""
 	}
-	idx_int, err := strconv.Atoi(idx)
-	dumpError(err)
-	return w.GetTablelistItemByIdx(idx_int)
+	return w.GetFullKeys2(idx)
 }
 
 func (w *Tablelist) ToggleColumnHide(first_column_idx int, last_column_idx int) error {
@@ -1017,11 +1034,9 @@ func (w *Tablelist) OnSelectionChanged(fn func()) error {
 	})
 }
 
-func (w *Tablelist) OnItemCollapsed(fn func(*TablelistItem)) error {
+func (w *Tablelist) OnItemCollapsed(fn func(full_key string)) error {
 	event_fn := func(e *Event) {
-		tli_idx, err := strconv.Atoi(e.UserData)
-		dumpError(err)
-		fn(w.GetTablelistItemByIdx(tli_idx))
+		fn(w.GetFullKeys2(e.UserData))
 	}
 	return w.BindEvent("<<TablelistRowCollapse>>", event_fn)
 }
@@ -1031,7 +1046,7 @@ func (w *Tablelist) OnItemPopulate(fn func(*Event)) error {
 	return w.BindEvent("<<TablelistRowPopulate>>", fn)
 }
 
-func (w *Tablelist) OnDoubleClickedItem(fn func(item *TablelistItem)) error {
+func (w *Tablelist) OnDoubleClickedItem(fn func(full_key string)) error {
 	return w.BindEvent("<Double-ButtonPress-1>", func(e *Event) {
 		item := w.NearestCell(e.PosX, e.PosY)
 		fn(item)
