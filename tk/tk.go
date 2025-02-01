@@ -93,6 +93,20 @@ func TkLibrary() (path string) {
 	return
 }
 
+func AutoPath() (path string) {
+	path, _ = evalAsString("puts $auto_path")
+	return
+}
+
+func SetAutoPath(path string) string {
+	r, _ := evalAsString(fmt.Sprintf("set auto_path [linsert $auto_path 0 %s]", path))
+	return r
+}
+
+func init() {
+	runtime.LockOSThread()
+}
+
 func MainLoop(fn func()) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -122,6 +136,7 @@ func Quit() {
 }
 
 func eval(script string) error {
+	fmt.Println(script)
 	err := mainInterp.Eval(script)
 	if err != nil {
 		dumpError(fmt.Errorf("script: %q, error: %q", script, err))
@@ -251,7 +266,7 @@ func evalAsIntListEx(script string, dump bool) ([]int, error) {
 
 func dumpError(err error) {
 	if fnErrorHandle != nil {
-		fnErrorHandle(fmt.Errorf("%v", err))
+		fnErrorHandle(err)
 	}
 }
 
