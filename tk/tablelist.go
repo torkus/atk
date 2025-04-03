@@ -857,6 +857,23 @@ func (w *Tablelist) RefreshSorting(parentNodeIndex int) error {
 	return eval(fmt.Sprintf("%v refreshsorting %v", w.id, parentNodeIndex))
 }
 
+// fully expands the row at `index`.
+func (w *Tablelist) ExpandFully1(index string) error {
+	return eval(fmt.Sprintf("%v expand {%v} -fully", w.id, index))
+}
+
+func (w *Tablelist) ExpandFully2(index_list []string) error {
+	return w.ExpandFully1(strings.Join(index_list, " "))
+}
+
+func (w *Tablelist) ExpandPartly1(index string) error {
+	return eval(fmt.Sprintf("%v expand {%v} -partly", w.id, index))
+}
+
+func (w *Tablelist) ExpandPartly2(index_list []string) error {
+	return w.ExpandPartly1(strings.Join(index_list, " "))
+}
+
 // "... expands all top-level rows of a tablelist used as a tree widget, i.e., makes all their children visible."
 // "... the command will be performed recursively, i.e., all of the descendants of the top-level nodes will be displayed."
 func (w *Tablelist) ExpandAll() error {
@@ -868,6 +885,14 @@ func (w *Tablelist) ExpandAll() error {
 // nodes will be displayed, without changing the expanded/collapsed state of the child nodes."
 func (w *Tablelist) ExpandAllPartly() error {
 	return eval(fmt.Sprintf("%v expandall -partly", w.id))
+}
+
+func (w *Tablelist) CollapseFully1(index string) error {
+	return eval(fmt.Sprintf("%v collapse {%v} -fully", w.id, index))
+}
+
+func (w *Tablelist) CollapseFully2(index_list []string) error {
+	return w.CollapseFully1(strings.Join(index_list, " "))
 }
 
 // "... collapses all top-level rows of a tablelist used as a tree widget, i.e., elides all their descendants."
