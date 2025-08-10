@@ -434,6 +434,7 @@ func (w *Tablelist) TakeFocus() bool {
 	return r
 }
 
+// "Specifies the column to contain the indentations and expand/collapse controls in the body of a tablelist used as a tree widget."
 func (w *Tablelist) TreeColumn(column_index int) error {
 	return eval(fmt.Sprintf("%v configure -treecolumn %v", w.id, column_index))
 }
@@ -629,7 +630,7 @@ func (w *Tablelist) TreeColumn(column_index int) error {
 
 func (w *Tablelist) ColumnNames(column_count int) []string {
 	col_names := []string{}
-	for idx := 0; idx < column_count; idx++ {
+	for idx := range column_count {
 		name, _ := evalAsString(fmt.Sprintf("%v columncget %v -title", w.id, idx))
 		col_names = append(col_names, name)
 	}
@@ -656,7 +657,7 @@ func (w *Tablelist) ColumnConfigureEx(column_index string, column *TablelistColu
 	option_list := []string{}
 	column_as_value := reflect.ValueOf(*column)
 	column_type := column_as_value.Type()
-	for i := 0; i < column_as_value.NumField(); i++ {
+	for i := range column_as_value.NumField() {
 		field := column_type.Field(i)
 		field_value := column_as_value.Field(i).Interface()
 		option := strings.ToLower(field.Name)
@@ -674,6 +675,11 @@ func (w *Tablelist) ColumnConfigureEx(column_index string, column *TablelistColu
 			}
 			if option == "title" {
 				field_value = Quote(v)
+			}
+		case int:
+			if v == 0 {
+				// skip zero vals by default
+				continue
 			}
 		}
 
@@ -750,7 +756,7 @@ func (w *Tablelist) InsertSingle(index int, item_list []string) []*TablelistItem
 }
 */
 
-func (w *Tablelist) InsertChildren(parent_node_idx interface{}, child_index int, item_list [][]string) []string {
+func (w *Tablelist) InsertChildren(parent_node_idx any, child_index int, item_list [][]string) []string {
 	var parent_node_idx_str string
 
 	switch t := parent_node_idx.(type) {
@@ -837,14 +843,17 @@ func (w *Tablelist) InsertChildListEx(pidx interface{}, cidx int, item_list [][]
 }
 */
 
+// delete a range of rows
 func (w *Tablelist) Delete(idx1, idx2 int) error {
 	return eval(fmt.Sprintf("%v delete %v %v", w.id, idx1, idx2))
 }
 
-func (w *Tablelist) Delete2(idx ...int) error {
-	return eval(fmt.Sprintf("%v delete %v", w.id, strings.Join(int_list_to_string_list(idx), " ")))
+// delete N specific rows
+func (w *Tablelist) Delete2(idx ...string) error {
+	return eval(fmt.Sprintf("%v delete %v", w.id, strings.Join(idx, " ")))
 }
 
+// delete all rows
 func (w *Tablelist) DeleteAllItems() error {
 	return eval(fmt.Sprintf("%v delete 0 end", w.id))
 }
@@ -964,9 +973,22 @@ func (w *Tablelist) Get2(idx ...int) []string {
 */
 
 // "... returns a list whose elements are all of the tablelist items (i.e., row contents) between firstIndex and lastIndex, inclusive."
-func (w *Tablelist) Get(idx1, idx2 string) []string {
-	rows, _ := evalAsStringList(fmt.Sprintf("%v get %v %v %v", w.id, idx1, idx2, TABLELIST_ROW_STATE_ALL))
+func (w *Tablelist) Get(idx1, idx2 string, state TABLELIST_ROW_STATE) []string {
+	rows, _ := evalAsStringList(fmt.Sprintf("%v get %v %v %v", w.id, idx1, idx2, state))
 	return rows
+}
+
+// "... returns a list whose elements are all of the tablelist elements (i.e., cell contents) between firstCell and lastCell, inclusive."
+func (w *Tablelist) GetCells(idx1, idx2 string, state TABLELIST_ROW_STATE) []string {
+	cells, _ := evalAsStringList(fmt.Sprintf("%v getcells %v %v %v", w.id, idx1, idx2, state))
+	return cells
+}
+
+// "... returns a list whose elements are all of the tablelist elements (i.e., cell contents) between firstCell and lastCell, inclusive."
+func (w *Tablelist) GetCells2(idx []string) []string {
+	idx_str := strings.Join(idx, " ")
+	cells, _ := evalAsStringList(fmt.Sprintf("%v getcells {%v}", w.id, idx_str))
+	return cells
 }
 
 // "Each item of a tablelist widget has a unique sequence number that remains unchanged until the item is deleted,
@@ -1013,8 +1035,15 @@ func (w *Tablelist) CurSelection(state TABLELIST_ROW_STATE) []int {
 }
 
 // "Returns a list containing the numerical indices of all of the items in the tablelist that contain at least one selected element."
+// include hidden/collapsed rows too
 func (w *Tablelist) CurSelection2() []int {
 	return w.CurSelection(TABLELIST_ROW_STATE_ALL)
+}
+
+// "Returns a list containing the numerical indices of all of the items in the tablelist that contain at least one selected element."
+// just visable rows
+func (w *Tablelist) CurSelection3() []int {
+	return w.CurSelection(TABLELIST_ROW_STATE_VIEWABLE)
 }
 
 func (w *Tablelist) MoveColumn(source_column_idx int, target_column_idx int) error {
@@ -1022,12 +1051,24 @@ func (w *Tablelist) MoveColumn(source_column_idx int, target_column_idx int) err
 	return err
 }
 
+func (w *Tablelist) Nearest(y int) string {
+	idx, _ := evalAsString(fmt.Sprintf("%v nearest %v", w.id, y))
+	return idx
+}
+
 func (w *Tablelist) NearestCell(x int, y int) string {
 	idx, _ := evalAsString(fmt.Sprintf("%v nearestcell %v %v", w.id, x, y))
-	if idx == "" {
-		return ""
-	}
-	return w.GetFullKeys2(idx)
+	return idx
+}
+
+func (w *Tablelist) SelectionClear(idx string) error {
+	_, err := evalAsString(fmt.Sprintf("%v selection clear %v", w.id, idx))
+	return err
+}
+
+func (w *Tablelist) SelectionSet(idx string) error {
+	_, err := evalAsString(fmt.Sprintf("%v selection set %v", w.id, idx))
+	return err
 }
 
 func (w *Tablelist) ToggleColumnHide(first_column_idx int, last_column_idx int) error {
@@ -1045,6 +1086,18 @@ func (w *Tablelist) ToggleColumnHide2(column_index_list []int) error {
 	}
 	column_idx_list_str := strings.Join(column_idx_list, " ")
 	_, err := evalAsString(fmt.Sprintf("%v togglecolumnhide {%v}", w.id, column_idx_list_str))
+	return err
+}
+
+func (w *Tablelist) ToggleRowHide(idx1, idx2 string) error {
+	_, err := evalAsString(fmt.Sprintf("%v togglerowhide %v %v", w.id, idx1, idx2))
+	return err
+}
+
+func (w *Tablelist) ToggleRowHide2(idx []string) error {
+	idx_str := strings.Join(idx, " ")
+	fmt.Println(fmt.Sprintf("%v togglerowhide {%v}", w.id, idx_str))
+	_, err := evalAsString(fmt.Sprintf("%v togglerowhide {%v}", w.id, idx_str))
 	return err
 }
 
@@ -1073,7 +1126,14 @@ func (w *Tablelist) OnItemPopulate(fn func(*Event)) error {
 
 func (w *Tablelist) OnDoubleClickedItem(fn func(full_key string)) error {
 	return w.BindEvent("<Double-ButtonPress-1>", func(e *Event) {
-		item := w.NearestCell(e.PosX, e.PosY)
+		idx := w.NearestCell(e.PosX, e.PosY)
+		item := w.GetFullKeys2(idx)
 		fn(item)
 	})
+}
+
+// ---
+
+func (w *Tablelist) BindEvent(event string, fn func(event *Event)) error {
+	return BindEvent(fmt.Sprintf("[%v bodytag]", w.id), event, fn)
 }

@@ -49,9 +49,9 @@ var (
 
 func init() {
 	/*
-	registerInit(func() {
-		ttk_theme_list, _ = evalAsStringList("ttk::themes")
-	})
+		registerInit(func() {
+			ttk_theme_list, _ = evalAsStringList("ttk::themes")
+		})
 	*/
 	SetMainTheme(TtkTheme)
 }

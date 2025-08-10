@@ -1,5 +1,6 @@
 // Copyright 2018 visualfc. All rights reserved.
 
+//go:build go1.7 && !windows
 // +build go1.7,!windows
 
 package interp

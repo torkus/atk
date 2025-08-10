@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-//tk_chooseColor — pops up a dialog box for the user to select a color.
+// tk_chooseColor — pops up a dialog box for the user to select a color.
 func ChooseColor(parent Widget, title string, initcolor string) (string, error) {
 	script := fmt.Sprintf("tk_chooseColor")
 	if parent != nil {
@@ -22,7 +22,7 @@ func ChooseColor(parent Widget, title string, initcolor string) (string, error) 
 	return evalAsString(script)
 }
 
-//tk_chooseDirectory — pops up a dialog box for the user to select a directory.
+// tk_chooseDirectory — pops up a dialog box for the user to select a directory.
 func ChooseDirectory(parent Widget, title string, initialdir string, mustexist bool) (string, error) {
 	script := fmt.Sprintf("tk_chooseDirectory")
 	if parent != nil {
@@ -51,7 +51,7 @@ func (v FileType) String() string {
 	return fmt.Sprintf("{%v} {%v}", v.Info, v.Ext)
 }
 
-//tk_getOpenFile, tk_getSaveFile — pop up a dialog box for the user to select a file to open or save.
+// tk_getOpenFile, tk_getSaveFile — pop up a dialog box for the user to select a file to open or save.
 func GetOpenFile(parent Widget, title string, filetypes []FileType, initialdir string, initialfile string) (string, error) {
 	script := fmt.Sprintf("tk_getOpenFile")
 	if parent != nil {
@@ -109,7 +109,7 @@ func GetOpenMultipleFile(parent Widget, title string, filetypes []FileType, init
 	return evalAsStringList(script)
 }
 
-//tk_getOpenFile, tk_getSaveFile — pop up a dialog box for the user to select a file to open or save.
+// tk_getOpenFile, tk_getSaveFile — pop up a dialog box for the user to select a file to open or save.
 func GetSaveFile(parent Widget, title string, confirmoverwrite bool, defaultextension string, filetypes []FileType, initialdir string, initialfile string) (string, error) {
 	script := fmt.Sprintf("tk_getSaveFile")
 	if parent != nil {
@@ -188,7 +188,7 @@ func (v MessageBoxType) String() string {
 	return ""
 }
 
-//tk_messageBox — pops up a message window and waits for user response.
+// tk_messageBox — pops up a message window and waits for user response.
 func MessageBox(parent Widget, title string, message string, detail string, defaultbutton string, icon MessageBoxIcon, typ MessageBoxType) (string, error) {
 	script := fmt.Sprintf("tk_messageBox")
 	if parent != nil {

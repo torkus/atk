@@ -212,7 +212,7 @@ func FontFamilieList() []string {
 	return r
 }
 
-//tk system default font
+// tk system default font
 type SysFont struct {
 	BaseFont
 }

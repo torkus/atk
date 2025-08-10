@@ -191,7 +191,7 @@ func (e *KeyEvent) removeModifier(sym string, name string, mod KeyModifier) {
 	}
 }
 
-//TODO: almost check key modifier
+// TODO: almost check key modifier
 func BindKeyEventEx(tag string, fnPress func(e *KeyEvent), fnRelease func(e *KeyEvent)) error {
 	var ke KeyEvent
 	var err error
@@ -275,10 +275,10 @@ func BindInfo(tag string) []string {
 	return v
 }
 
-//Associates the virtual event virtual with the physical event sequence(s)
-//given by the sequence arguments, so that the virtual event will trigger
-//whenever any one of the sequences occurs. Virtual may be any string value
-//and sequence may have any of the values allowed for the sequence argument
+// Associates the virtual event virtual with the physical event sequence(s)
+// given by the sequence arguments, so that the virtual event will trigger
+// whenever any one of the sequences occurs. Virtual may be any string value
+// and sequence may have any of the values allowed for the sequence argument
 // to the bind command. If virtual is already defined, the new physical event
 // sequences add to the existing sequences for the event.
 func AddVirtualEventPhysicalEvent(virtual string, event string, events ...string) error {
@@ -289,11 +289,11 @@ func AddVirtualEventPhysicalEvent(virtual string, event string, events ...string
 	return eval(fmt.Sprintf("event add %v %v", virtual, strings.Join(eventList, " ")))
 }
 
-//Deletes each of the sequences from those associated with the virtual event
+// Deletes each of the sequences from those associated with the virtual event
 // given by virtual. Virtual may be any string value and sequence may have
-//any of the values allowed for the sequence argument to the bind command.
-//Any sequences not currently associated with virtual are ignored.
-//If no sequence argument is provided, all physical event sequences are removed
+// any of the values allowed for the sequence argument to the bind command.
+// Any sequences not currently associated with virtual are ignored.
+// If no sequence argument is provided, all physical event sequences are removed
 // for virtual, so that the virtual event will not trigger anymore.
 func RemoveVirtualEventPhysicalEvent(virtual string, events ...string) error {
 	if !IsVirtualEvent(virtual) {
@@ -310,7 +310,7 @@ func VirtualEventInfo(virtual string) []string {
 	return r
 }
 
-//TODO: event attr
+// TODO: event attr
 type EventAttr struct {
 	key   string
 	value string

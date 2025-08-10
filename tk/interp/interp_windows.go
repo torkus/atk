@@ -232,7 +232,7 @@ func (p *Interp) Eval(script string) error {
 	return nil
 }
 
-//typedef int (Tcl_ObjCmdProc) (ClientData clientData, *Tcl_Interp *interp, int objc, struct *Tcl_Obj *const *objv);
+// typedef int (Tcl_ObjCmdProc) (ClientData clientData, *Tcl_Interp *interp, int objc, struct *Tcl_Obj *const *objv);
 func _go_tcl_objcmd_proc(clientData uintptr, interp *Tcl_Interp, objc int, objv unsafe.Pointer) int {
 	objs := (*(*[1 << 20]*Tcl_Obj)(objv))[1:objc]
 	var args []string
@@ -251,7 +251,7 @@ func _go_tcl_objcmd_proc(clientData uintptr, interp *Tcl_Interp, objc int, objv 
 	return TCL_OK
 }
 
-//typedef void (Tcl_CmdDeleteProc) (ClientData clientData);
+// typedef void (Tcl_CmdDeleteProc) (ClientData clientData);
 func _go_tcl_cmddelete_proc(clientData uintptr) int {
 	globalCommandMap.UnRegister(clientData)
 	return 0
@@ -277,7 +277,7 @@ func _go_tcl_actiono_delete_proc(id uintptr) int {
 	return 0
 }
 
-//Tcl_Command Tcl_CreateObjCommand(*Tcl_Interp *interp, const char *cmdName, Tcl_ObjCmdProc *proc, ClientData clientData, Tcl_CmdDeleteProc *deleteProc);
+// Tcl_Command Tcl_CreateObjCommand(*Tcl_Interp *interp, const char *cmdName, Tcl_ObjCmdProc *proc, ClientData clientData, Tcl_CmdDeleteProc *deleteProc);
 func (p *Interp) CreateCommand(name string, fn func([]string) (string, error)) (uintptr, error) {
 	s, err := syscall.BytePtrFromString(name)
 	if err != nil {
@@ -521,19 +521,19 @@ func NewStringObj(value string, p *Interp) *Obj {
 	return &Obj{Tcl_NewStringObj(s, int32(len(value))), p.interp}
 }
 
-//NOTE: Tcl_NewDoubleObj test error on windows
+// NOTE: Tcl_NewDoubleObj test error on windows
 func NewFloat64Obj(value float64, p *Interp) *Obj {
 	//return &Obj{Tcl_NewDoubleObj(Tcl_Double(value)), p.interp}
 	return NewStringObj(fmt.Sprintf("%v", value), p)
 }
 
-//NOTE: Tcl_NewWideIntObj test error on windows 32 bit
+// NOTE: Tcl_NewWideIntObj test error on windows 32 bit
 func NewInt64Obj(value int64, p *Interp) *Obj {
 	return NewStringObj(fmt.Sprintf("%v", value), p)
 	//return &Obj{Tcl_NewWideIntObj(Tcl_WideInt(value)), p.interp}
 }
 
-//NOTE: use int to string for amd64/i386
+// NOTE: use int to string for amd64/i386
 func NewIntObj(value int, p *Interp) *Obj {
 	return NewStringObj(fmt.Sprintf("%v", value), p)
 	//	return &Obj{Tcl_NewLongObj(value), p.interp}
