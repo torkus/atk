@@ -163,8 +163,10 @@ func MainLoop(fn func()) {
 }
 
 type Interp struct {
-	interp      *C.Tcl_Interp
-	supportTk86 bool
+	interp        *C.Tcl_Interp
+	supportTk86   bool
+	FnDebugHandle func(string)
+	FnErrorHandle func(error)
 }
 
 func NewInterp() (*Interp, error) {
@@ -172,7 +174,7 @@ func NewInterp() (*Interp, error) {
 	if interp == nil {
 		return nil, errors.New("Tcl_CreateInterp failed")
 	}
-	return &Interp{interp, false}, nil
+	return &Interp{interp: interp, supportTk86: false}, nil
 }
 
 func (p *Interp) SupportTk86() bool {
@@ -220,12 +222,16 @@ func (p *Interp) GetListObjResult() *ListObj {
 }
 
 func (p *Interp) Eval(script string) error {
-	println("> " + script)
-	println("---")
+	if p.FnDebugHandle != nil {
+		p.FnDebugHandle(script)
+	}
 	cs := C.CString(script)
 	defer C.free(unsafe.Pointer(cs))
 	if C.Tcl_EvalEx(p.interp, cs, C.int(len(script)), 0) != TCL_OK {
 		err := errors.New(p.GetStringResult())
+		if err != nil && p.FnErrorHandle != nil {
+			p.FnErrorHandle(err)
+		}
 		return err
 	}
 	return nil

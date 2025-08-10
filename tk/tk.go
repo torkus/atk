@@ -4,7 +4,6 @@ package tk
 
 import (
 	"fmt"
-	"log"
 	"runtime"
 
 	"github.com/visualfc/atk/tk/interp"
@@ -15,9 +14,8 @@ var (
 	tkWindowInitAutoHide bool
 	mainInterp           *interp.Interp
 	rootWindow           *Window
-	fnErrorHandle        func(error) = func(err error) {
-		log.Println(err)
-	}
+	fnDebugHandle        func(string) = func(script string) {}
+	fnErrorHandle        func(error)  = func(err error) {}
 )
 
 func Init() error {
@@ -40,6 +38,9 @@ func InitEx(tk_window_init_hide bool, tcl_library string, tk_library string) (er
 		dumpError(err)
 		return err
 	}
+
+	mainInterp.FnDebugHandle = fnDebugHandle
+	mainInterp.FnErrorHandle = fnErrorHandle
 
 	tkWindowInitAutoHide = tk_window_init_hide
 	//hide console for macOS bundle
@@ -65,6 +66,10 @@ var (
 
 func registerInit(fn func()) {
 	init_func_list = append(init_func_list, fn)
+}
+
+func SetDebugHandle(fn func(string)) {
+	fnDebugHandle = fn
 }
 
 func SetErrorHandle(fn func(error)) {
@@ -136,7 +141,8 @@ func Quit() {
 }
 
 func eval(script string) error {
-	fmt.Println(script)
+	// disabled: debug logging moved closer to interp
+	// fmt.Println(script)
 	err := mainInterp.Eval(script)
 	if err != nil {
 		dumpError(fmt.Errorf("script: %q, error: %q", script, err))
@@ -264,10 +270,13 @@ func evalAsIntListEx(script string, dump bool) ([]int, error) {
 	return r, err
 }
 
+// disabled: error logging moved closer to interp
 func dumpError(err error) {
-	if fnErrorHandle != nil {
-		fnErrorHandle(err)
-	}
+	/*
+		if fnErrorHandle != nil {
+			fnErrorHandle(err)
+		}
+	*/
 }
 
 func setObjText(obj string, text string) {
