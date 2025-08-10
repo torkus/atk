@@ -95,6 +95,7 @@ func buildWidgetAttributeScript(meta *MetaClass, ttk bool, attributes []*WidgetA
 			list = append(list, checkPaddingScript(ttk, attr))
 			continue
 		}
+		// disabled: do not fail silently
 		/*
 			if !meta.HasAttribute(attr.Key) {
 				continue
