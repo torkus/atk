@@ -196,24 +196,28 @@ func (w *Menu) InsertNewSubMenu(index int, label string, attributes ...*WidgetAt
 	return sub
 }
 
-func (w *Menu) AddAction(act *Action) error {
+func (w *Menu) AddActionWithState(act *Action, state string) error {
 	var script string
 	if act.IsSeparator() {
 		script = fmt.Sprintf("%v add separator", w.id)
 	} else if act.IsRadioAction() {
 		setObjText("atk_tmp_label", act.label)
-		script = fmt.Sprintf("%v add radiobutton -label $atk_tmp_label -variable {%v} -value {%v} -command {%v}",
-			w.id, act.groupid, act.radioid, act.actid)
+		script = fmt.Sprintf("%v add radiobutton -label $atk_tmp_label -variable {%v} -value {%v} -command {%v} -state {%v}",
+			w.id, act.groupid, act.radioid, act.actid, state)
 	} else if act.IsCheckAction() {
 		setObjText("atk_tmp_label", act.label)
-		script = fmt.Sprintf("%v add checkbutton -label $atk_tmp_label -variable {%v} -command {%v}",
-			w.id, act.checkid, act.actid)
+		script = fmt.Sprintf("%v add checkbutton -label $atk_tmp_label -variable {%v} -command {%v} -state {%v}",
+			w.id, act.checkid, act.actid, state)
 	} else {
 		setObjText("atk_tmp_label", act.label)
-		script = fmt.Sprintf("%v add command -label $atk_tmp_label -command {%v}",
-			w.id, act.actid)
+		script = fmt.Sprintf("%v add command -label $atk_tmp_label -command {%v} -state {%v}",
+			w.id, act.actid, state)
 	}
 	return eval(script)
+}
+
+func (w *Menu) AddAction(act *Action) error {
+	return w.AddActionWithState(act, "normal")
 }
 
 func (w *Menu) InsertAction(index int, act *Action) error {
