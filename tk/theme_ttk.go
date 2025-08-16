@@ -34,7 +34,6 @@ func (t *ttkTheme) SetThemeId(id string) error {
 		}
 	}
 	err := fmt.Errorf("not found ttk_theme id:%v", id)
-	dumpError(err)
 	return err
 }
 

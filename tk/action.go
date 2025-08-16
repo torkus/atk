@@ -171,9 +171,8 @@ func (a *ActionGroup) OnCommand(fn func()) {
 	a.fnRadioCommand = fn
 }
 
-func (a *ActionGroup) checkedValue() string {
-	r, _ := evalAsStringEx(fmt.Sprintf("set %v", a.groupid), false)
-	return r
+func (a *ActionGroup) checkedValue() (string, error) {
+	return evalAsString(fmt.Sprintf("set %v", a.groupid))
 }
 
 func (a *ActionGroup) SetCheckedIndex(index int) error {
@@ -197,30 +196,36 @@ func (a *ActionGroup) SetCheckedAction(act *Action) error {
 	return ErrNotExist
 }
 
-func (a *ActionGroup) CheckedActionIndex() int {
-	s := a.checkedValue()
+func (a *ActionGroup) CheckedActionIndex() (int, error) {
+	s, err := a.checkedValue()
+	if err != nil {
+		return -1, err
+	}
 	if s == "" {
-		return -1
+		return -1, fmt.Errorf("checked item is empty")
 	}
 	for n, act := range a.actions {
 		if act.radioid == s {
-			return n
+			return n, nil
 		}
 	}
-	return -1
+	return -1, fmt.Errorf("no checked items")
 }
 
-func (a *ActionGroup) CheckedAction() *Action {
-	s := a.checkedValue()
+func (a *ActionGroup) CheckedAction() (*Action, error) {
+	s, err := a.checkedValue()
+	if err != nil {
+		return nil, err
+	}
 	if s == "" {
-		return nil
+		return nil, fmt.Errorf("checked action is empty")
 	}
 	for _, act := range a.actions {
 		if act.radioid == s {
-			return act
+			return act, nil
 		}
 	}
-	return nil
+	return nil, fmt.Errorf("no checked action")
 }
 
 func (a *ActionGroup) Actions() []*Action {

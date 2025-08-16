@@ -160,7 +160,7 @@ func column_triple_string(column_list ...*TablelistColumn) string {
 
 // ---
 
-func NewTablelist(parent Widget, attributes ...*WidgetAttr) *Tablelist {
+func NewTablelist(parent Widget, attributes ...*WidgetAttr) (*Tablelist, error) {
 
 	// "Specifies a Tcl command to be invoked when expanding a row of a tablelist used as a tree widget"
 	attributes = append(attributes, &WidgetAttr{Key: "expandcommand", Value: "tablelistExpandCmd"})
@@ -173,7 +173,7 @@ func NewTablelist(parent Widget, attributes ...*WidgetAttr) *Tablelist {
 	iid := makeNamedWidgetId(parent, "atk_tablelist")
 	info := CreateWidgetInfo(iid, WidgetTypeTablelist, theme, attributes)
 	if info == nil {
-		return nil
+		return nil, fmt.Errorf("failed to create tablelist widget")
 	}
 	w := &Tablelist{}
 	w.id = iid
@@ -197,9 +197,7 @@ proc tablelistPopulateCmd {tbl row} {
 }
 `
 	err := eval(expand_collapse_cmd_proc)
-	dumpError(err)
-
-	return w
+	return w, err
 }
 
 func (w *Tablelist) SetXViewArgs(args []string) error {
@@ -260,15 +258,19 @@ type TablelistEx struct {
 
 // a composite widget consisting of `Tablelist` and scrollbars bound to scroll events,
 // wrapped in a `ScrollLayout`.
-func NewTablelistEx(parent Widget, attributes ...*WidgetAttr) *TablelistEx {
+func NewTablelistEx(parent Widget, attributes ...*WidgetAttr) (*TablelistEx, error) {
 	w := &TablelistEx{}
 	w.ScrollLayout = NewScrollLayout(parent)
-	w.Tablelist = NewTablelist(parent, attributes...)
+	tl, err := NewTablelist(parent, attributes...)
+	if err != nil {
+		return nil, err
+	}
+	w.Tablelist = tl
 	w.SetWidget(w.Tablelist)
 	w.Tablelist.BindXScrollBar(w.XScrollBar)
 	w.Tablelist.BindYScrollBar(w.YScrollBar)
 	RegisterWidget(w)
-	return w
+	return w, nil
 }
 
 // ---
@@ -412,7 +414,7 @@ func (w *Tablelist) SelectMode() TABLELIST_SELECT_MODE {
 	mode_key := TABLELIST_SELECT_MODE(mode)
 	_, present := TABLELIST_SELECT_MODE_SET[mode_key]
 	if !present {
-		dumpError(fmt.Errorf("unknown select mode returned: %s", mode))
+		panic(fmt.Sprintf("unknown select mode returned: %s", mode))
 	}
 	return mode_key
 }
@@ -918,10 +920,8 @@ func (w *Tablelist) CollapseAllPartly() error {
 
 // [does not work]
 // "Returns the list of full keys of the expanded items."
-func (w *Tablelist) ExpandedKeys() []int {
-	key_list, err := evalAsIntList(fmt.Sprintf("%v expandedkeys", w.id))
-	dumpError(err)
-	return key_list
+func (w *Tablelist) ExpandedKeys() ([]int, error) {
+	return evalAsIntList(fmt.Sprintf("%v expandedkeys", w.id))
 }
 
 func (w *Tablelist) GetKeys(idx1, idx2 int, option TABLELIST_ROW_STATE) []string {
