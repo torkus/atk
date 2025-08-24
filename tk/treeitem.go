@@ -24,48 +24,60 @@ func (t *TreeItem) InsertItem(index int, text string, values []string) *TreeItem
 	return t.tree.InsertItem(t, index, text, values)
 }
 
-func (t *TreeItem) Index() int {
-	if !t.IsValid() || t.IsRoot() {
-		return -1
+func (t *TreeItem) Index() (int, error) {
+	if !t.IsValid() {
+		return -1, fmt.Errorf("TreeItem is not valid")
 	}
-	r, err := evalAsIntEx(fmt.Sprintf("%v index {%v}", t.tree.id, t.id), false)
+	if t.IsRoot() {
+		return -1, fmt.Errorf("TreeItem is root")
+	}
+	r, err := evalAsInt(fmt.Sprintf("%v index {%v}", t.tree.id, t.id))
 	if err != nil {
-		return -1
+		return -1, err
 	}
-	return r
+	return r, nil
 }
 
 func (t *TreeItem) IsRoot() bool {
 	return t.id == ""
 }
 
-func (t *TreeItem) Parent() *TreeItem {
-	if !t.IsValid() || t.IsRoot() {
-		return nil
+func (t *TreeItem) Parent() (*TreeItem, error) {
+	if !t.IsValid() {
+		return nil, fmt.Errorf("TreeItem is not valid")
 	}
-	r, err := evalAsStringEx(fmt.Sprintf("%v parent {%v}", t.tree.id, t.id), false)
+	if t.IsRoot() {
+		return nil, fmt.Errorf("TreeItem is root")
+	}
+	r, err := evalAsString(fmt.Sprintf("%v parent {%v}", t.tree.id, t.id))
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return &TreeItem{t.tree, r}
+	return &TreeItem{t.tree, r}, nil
 }
 
-func (t *TreeItem) Next() *TreeItem {
-	if !t.IsValid() || t.IsRoot() {
-		return nil
+func (t *TreeItem) Next() (*TreeItem, error) {
+	if !t.IsValid() {
+		return nil, fmt.Errorf("TreeItem is not valid")
 	}
-	r, err := evalAsStringEx(fmt.Sprintf("%v next {%v}", t.tree.id, t.id), false)
-	if err != nil || r == "" {
-		return nil
+	if t.IsRoot() {
+		return nil, fmt.Errorf("TreeItem is root")
 	}
-	return &TreeItem{t.tree, r}
+	r, err := evalAsString(fmt.Sprintf("%v next {%v}", t.tree.id, t.id))
+	if err != nil {
+		return nil, err
+	}
+	if r == "" {
+		return nil, fmt.Errorf("TreeItem has no next item")
+	}
+	return &TreeItem{t.tree, r}, nil
 }
 
 func (t *TreeItem) Prev() *TreeItem {
 	if !t.IsValid() || t.IsRoot() {
 		return nil
 	}
-	r, err := evalAsStringEx(fmt.Sprintf("%v prev {%v}", t.tree.id, t.id), false)
+	r, err := evalAsString(fmt.Sprintf("%v prev {%v}", t.tree.id, t.id))
 	if err != nil || r == "" {
 		return nil
 	}

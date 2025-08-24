@@ -94,7 +94,7 @@ var (
 	}
 )
 
-//PREDEFINED VIRTUAL EVENTS
+// PREDEFINED VIRTUAL EVENTS
 const (
 	AltUnderlined   = "<<AltUnderlined>>"
 	Invoke          = "<<Invoke>>"

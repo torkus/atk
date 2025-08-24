@@ -205,6 +205,20 @@ func (w *Notebook) TabCount() int {
 	return r
 }
 
+func (w *Notebook) Text(index int) string {
+	r, _ := evalAsString(fmt.Sprintf("%v tab %v -text", w.id, index))
+	return r
+}
+
+func (w *Notebook) Tabs() []Widget {
+	rl, _ := evalAsStringList(fmt.Sprintf("%v tabs", w.id))
+	wl := []Widget{}
+	for _, r := range rl {
+		wl = append(wl, FindWidget(r))
+	}
+	return wl
+}
+
 func (w *Notebook) TabIndex(widget Widget) int {
 	if !IsValidWidget(widget) {
 		return -1

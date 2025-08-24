@@ -108,20 +108,14 @@ func (i *Image) IsValid() bool {
 	return i.id != "" && i.photo != nil
 }
 
-func (i *Image) SetImage(img image.Image) *Image {
+func (i *Image) SetImage(img image.Image) (*Image, error) {
 	err := i.photo.PutImage(img, i.tk85alpha)
-	if err != nil {
-		dumpError(err)
-	}
-	return i
+	return i, err
 }
 
-func (i *Image) SetZoomedImage(img image.Image, zoomX, zoomY, subsampleX, subsampleY int) *Image {
+func (i *Image) SetZoomedImage(img image.Image, zoomX, zoomY, subsampleX, subsampleY int) (*Image, error) {
 	err := i.photo.PutZoomedImage(img, zoomX, zoomY, subsampleX, subsampleY, i.tk85alpha)
-	if err != nil {
-		dumpError(err)
-	}
-	return i
+	return i, err
 }
 
 func (i *Image) ToImage() image.Image {
@@ -142,15 +136,12 @@ func (i *Image) Size() Size {
 	return Size{w, h}
 }
 
-func (i *Image) SetSizeN(width int, height int) *Image {
+func (i *Image) SetSizeN(width int, height int) (*Image, error) {
 	err := i.photo.SetSize(width, height)
-	if err != nil {
-		dumpError(err)
-	}
-	return i
+	return i, err
 }
 
-func (i *Image) SetSize(sz Size) *Image {
+func (i *Image) SetSize(sz Size) (*Image, error) {
 	return i.SetSizeN(sz.Width, sz.Height)
 }
 

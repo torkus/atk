@@ -34,7 +34,6 @@ func (t *ttkTheme) SetThemeId(id string) error {
 		}
 	}
 	err := fmt.Errorf("not found ttk_theme id:%v", id)
-	dumpError(err)
 	return err
 }
 
@@ -49,9 +48,9 @@ var (
 
 func init() {
 	/*
-	registerInit(func() {
-		ttk_theme_list, _ = evalAsStringList("ttk::themes")
-	})
+		registerInit(func() {
+			ttk_theme_list, _ = evalAsStringList("ttk::themes")
+		})
 	*/
 	SetMainTheme(TtkTheme)
 }

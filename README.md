@@ -65,3 +65,11 @@ func main() {
 	})
 }
 ```
+
+## Licence
+
+[visualfc/atk](https://github.com/visualfc/atk/) is [LGPL licensed](https://github.com/visualfc/atk/blob/master/LICENSE).
+[torkus/atk](https://github.com/torkus/atk) inherits the same licence with the following exceptions:
+
+* `tk/quote.go` is copied from [nsf/gothic](https://github.com/nsf/gothic) and is MIT licensed
+
