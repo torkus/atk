@@ -98,18 +98,12 @@ func TkLibrary() (path string) {
 	return
 }
 
-func AutoPath() (path string) {
-	path, _ = evalAsString("puts $auto_path")
-	return
+func AutoPath() (string, error) {
+	return evalAsString("puts $auto_path")
 }
 
-func SetAutoPath(path string) string {
-	r, _ := evalAsString(fmt.Sprintf("set auto_path [linsert $auto_path 0 %s]", path))
-	return r
-}
-
-func init() {
-	runtime.LockOSThread()
+func SetAutoPath(path string) (string, error) {
+	return evalAsString(fmt.Sprintf("set auto_path [linsert $auto_path 0 %s]", path))
 }
 
 func MainLoop(fn func()) error {
