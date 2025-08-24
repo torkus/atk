@@ -145,8 +145,10 @@ func MainLoop(fn func()) {
 }
 
 type Interp struct {
-	interp      *Tcl_Interp
-	supportTk86 bool
+	interp        *Tcl_Interp
+	supportTk86   bool
+	FnDebugHandle func(string)
+	FnErrorHandle func(error)
 }
 
 func NewInterp() (*Interp, error) {
@@ -158,7 +160,7 @@ func NewInterp() (*Interp, error) {
 	if interp == nil {
 		return nil, errors.New("Tcl_CreateInterp failed")
 	}
-	return &Interp{interp, false}, nil
+	return &Interp{interp: interp, supportTk86: false}, nil
 }
 
 func (p *Interp) SupportTk86() bool {
