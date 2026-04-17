@@ -918,6 +918,16 @@ func (w *Tablelist) CollapseAllPartly() error {
 	return eval(fmt.Sprintf("%v collapseall -partly", w.id))
 }
 
+func (w *Tablelist) IsExpanded(index string) bool {
+	val, _ := evalAsInt(fmt.Sprintf("%v isexpanded %v", w.id, index))
+	return val == 1
+}
+
+func (w *Tablelist) ChildCount(node_index string) int {
+	val, _ := evalAsInt(fmt.Sprintf("%v childcount %v", w.id, node_index))
+	return val
+}
+
 // [does not work]
 // "Returns the list of full keys of the expanded items."
 func (w *Tablelist) ExpandedKeys() ([]int, error) {
