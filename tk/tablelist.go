@@ -928,6 +928,22 @@ func (w *Tablelist) ChildCount(node_index string) int {
 	return val
 }
 
+func (w *Tablelist) Activate(index string) error {
+	return eval(fmt.Sprintf("%v activate %v", w.id, index))
+}
+
+// tablelist is a mega-widget: its body is a text widget with embedded cell frames.
+// event coordinates (%x %y) are relative to whichever sub-widget received the click,
+// not the tablelist itself. tablelist's own <Button-1> handler uses convEventFields
+// (mwutil.tcl) to translate sub-widget coords to tablelist-relative coords.
+// this method does the same translation using screen-absolute coordinates.
+func (w *Tablelist) ActivateAtGlobal(globalX, globalY int) error {
+	script := fmt.Sprintf(
+		"set _x [expr {%d - [winfo rootx %v]}]; set _y [expr {%d - [winfo rooty %v]}]; %v activate @$_x,$_y",
+		globalX, w.id, globalY, w.id, w.id)
+	return eval(script)
+}
+
 // [does not work]
 // "Returns the list of full keys of the expanded items."
 func (w *Tablelist) ExpandedKeys() ([]int, error) {
@@ -1079,6 +1095,11 @@ func (w *Tablelist) SelectionClear(idx string) error {
 func (w *Tablelist) SelectionSet(idx string) error {
 	_, err := evalAsString(fmt.Sprintf("%v selection set %v", w.id, idx))
 	return err
+}
+
+func (w *Tablelist) SelectionIncludes(idx string) bool {
+	val, _ := evalAsInt(fmt.Sprintf("%v selection includes %v", w.id, idx))
+	return val == 1
 }
 
 func (w *Tablelist) ToggleColumnHide(first_column_idx int, last_column_idx int) error {
