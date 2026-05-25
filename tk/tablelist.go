@@ -976,6 +976,27 @@ func (w *Tablelist) RowConfigure(idx string, options map[string]string) error {
 	return eval(fmt.Sprintf("%v rowconfigure %v %v", w.id, idx, strings.Join(keyvals, " ")))
 }
 
+// ConfigRowListSpec is a single (row index, option, value) triple for ConfigRowList.
+// Option is the bare name (e.g. "hide"), without a leading dash.
+type ConfigRowListSpec struct {
+	Index  string
+	Option string
+	Value  string
+}
+
+// ConfigRowList sets options on many rows in a single Tcl call via tablelist's `configrowlist`.
+// The argument is a flat list of {index option value} triples.
+func (w *Tablelist) ConfigRowList(specs []ConfigRowListSpec) error {
+	if len(specs) == 0 {
+		return nil
+	}
+	parts := make([]string, 0, len(specs)*3)
+	for _, s := range specs {
+		parts = append(parts, s.Index, "-"+s.Option, fmt.Sprintf("{%v}", s.Value))
+	}
+	return eval(fmt.Sprintf("%v configrowlist {%v}", w.id, strings.Join(parts, " ")))
+}
+
 func (w *Tablelist) RowConfigureText(idx string, text []string) error {
 	keyvals := []string{}
 	for _, val := range text {
